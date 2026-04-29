@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Rubik', 'Alef', system-ui, sans-serif;
+  background-color: #FAFAF7;
+  color: #3A3A3A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hebrew tuning: Alef has nicer body cadence; Rubik is cleaner for UI */
+body,
+input,
+textarea,
+select,
+button {
+  font-family: 'Rubik', 'Alef', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Rubik', 'Alef', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.brand-display {
+  font-family: 'Rubik Dirt', 'Rubik', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* RTL-friendly scrollbar styling */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #c4cebc; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #9BAD94; }
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-600 shadow-soft focus:ring-accent-300;
+  }
+  .btn-secondary {
+    @apply btn bg-ink text-white hover:bg-ink-700 focus:ring-ink-300;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink hover:bg-ink-50 focus:ring-ink-200;
+  }
+  .btn-outline {
+    @apply btn border border-ink-200 bg-white text-ink hover:bg-ink-50 focus:ring-ink-200;
+  }
+  .input {
+    @apply w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink-300 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent-100;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-ink-700;
+  }
+  .card {
+    @apply rounded-2xl bg-surface shadow-card border border-ink-100;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-muted-100 px-3 py-1 text-xs font-medium text-muted-700;
+  }
+  .chip-accent {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-accent-50 px-3 py-1 text-xs font-medium text-accent-700;
+  }
+  .skeleton {
+    @apply rounded-md bg-gradient-to-l from-ink-100 via-ink-50 to-ink-100 bg-[length:800px_100%] animate-shimmer;
+  }
+}
