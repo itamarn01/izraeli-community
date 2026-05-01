@@ -25,7 +25,7 @@ function NotificationPanel({ onClose }) {
   const { notifications, unreadCount, markRead, markAllRead, clearAll, isRead } = useNotifications();
 
   return (
-    <div className="absolute left-0 top-full mt-2 w-80 card shadow-card overflow-hidden z-50" style={{ minWidth: 320 }}>
+    <div className="absolute left-0 top-full mt-2 w-[calc(100vw-32px)] sm:w-80 card shadow-card overflow-hidden z-50">
       <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
         <span className="font-bold text-ink">התראות</span>
         <div className="flex gap-1">

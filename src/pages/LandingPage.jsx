@@ -28,11 +28,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-canvas">
       <header className="border-b border-ink-100 bg-white/80 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between">
           <Logo />
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="btn-ghost">כניסה</Link>
-            <Link to="/join" className="btn-primary">הצטרפות לקהילה</Link>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link to="/login" className="px-3 py-2 text-sm font-semibold text-ink hover:bg-ink-50 rounded-xl transition-colors">כניסה</Link>
+            <Link to="/join" className="btn-primary px-3 py-2 text-[13px] sm:text-sm whitespace-nowrap">הצטרפות לקהילה</Link>
           </div>
         </div>
       </header>
@@ -45,11 +45,12 @@ export default function LandingPage() {
         />
         <div className="absolute inset-0 z-10 bg-gradient-to-bl from-ink/90 via-ink/60 to-ink/90" />
 
-        <div className="relative z-20 mx-auto max-w-6xl px-6 py-20 grid md:grid-cols-2 gap-10 items-center w-full">
+        <div className="relative z-20 mx-auto max-w-6xl px-4 sm:px-6 py-12 md:py-20 grid md:grid-cols-2 gap-10 items-center w-full">
           <motion.div
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
+            className="flex flex-col items-center md:items-start text-center md:text-right"
           >
             <span className="chip-accent mb-4">
               <ShieldCheck className="h-3.5 w-3.5" />
@@ -61,12 +62,12 @@ export default function LandingPage() {
             <p className="mt-5 text-white/90 text-lg leading-relaxed max-w-md drop-shadow">
               פלטפורמה אחת שמרכזת הטבות, משרות וקהילה — ייעודית לחברי החטיבה ובני המשפחות.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/join" className="btn-primary">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Link to="/join" className="btn-primary w-full sm:w-auto">
                 התחלת תהליך הצטרפות
                 <ArrowLeft className="h-4 w-4" />
               </Link>
-              <Link to="/login" className="btn-outline">כבר יש לי חשבון</Link>
+              <Link to="/login" className="btn-outline w-full sm:w-auto">כבר יש לי חשבון</Link>
             </div>
           </motion.div>
 
