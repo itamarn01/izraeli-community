@@ -10,6 +10,9 @@ html,
 body,
 #root {
   height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
 body {
@@ -19,6 +22,8 @@ body {
   color: #3A3A3A;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
 }
 
 /* Hebrew tuning: Alef has nicer body cadence; Rubik is cleaner for UI */
@@ -64,7 +69,7 @@ h1, h2, h3, h4 {
     @apply btn border border-ink-200 bg-white text-ink hover:bg-ink-50 focus:ring-ink-200;
   }
   .input {
-    @apply w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink-300 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent-100;
+    @apply w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-base sm:text-sm text-ink placeholder:text-ink-300 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent-100;
   }
   .label {
     @apply mb-1.5 block text-sm font-semibold text-ink-700;
