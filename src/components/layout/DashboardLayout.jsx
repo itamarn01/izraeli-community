@@ -20,27 +20,34 @@ const NAV = [
 
 const TYPE_ICON = { post: PostIcon, job: JobIcon, benefit: BenefitIcon };
 const TYPE_LABEL = { post: 'פוסט', job: 'משרה', benefit: 'הטבה' };
+const TYPE_ROUTE = { post: '/app/feed', job: '/app/jobs', benefit: '/app/benefits' };
+const TYPE_PARAM = { post: 'post', job: 'job', benefit: 'benefit' };
 
 function NotificationPanel({ onClose }) {
-  const { notifications, unreadCount, markRead, markAllRead, clearAll, isRead } = useNotifications();
+  const navigate = useNavigate();
+  const { notifications, markRead, markAllRead, clearAll, isRead } = useNotifications();
+
+  const handleClick = (n) => {
+    if (!isRead(n)) markRead(n._id);
+    if (n.resourceId && n.type) {
+      navigate(`${TYPE_ROUTE[n.type]}?${TYPE_PARAM[n.type]}=${n.resourceId}`);
+    }
+    onClose();
+  };
 
   return (
     <div className="absolute left-0 top-full mt-2 w-[calc(100vw-32px)] sm:w-80 card shadow-card overflow-hidden z-50">
       <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
         <span className="font-bold text-ink">התראות</span>
-        <div className="flex gap-1">
-          {unreadCount > 0 && (
-            <button onClick={markAllRead} className="text-xs text-accent hover:underline flex items-center gap-1">
-              <CheckCheck className="h-3.5 w-3.5" />
-              סמן הכל כנקרא
-            </button>
-          )}
-          {notifications.length > 0 && (
-            <button onClick={clearAll} className="text-xs text-ink-400 hover:text-accent mr-2 flex items-center gap-1">
-              <Trash2 className="h-3.5 w-3.5" />
-              נקה
-            </button>
-          )}
+        <div className="flex items-center gap-2">
+          <button onClick={markAllRead} className="text-xs text-accent hover:underline flex items-center gap-1">
+            <CheckCheck className="h-3.5 w-3.5" />
+            סמן הכל
+          </button>
+          <button onClick={clearAll} className="text-xs text-ink-400 hover:text-accent flex items-center gap-1">
+            <Trash2 className="h-3.5 w-3.5" />
+            נקה
+          </button>
           <button onClick={onClose} className="h-7 w-7 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-400">
             <X className="h-3.5 w-3.5" />
           </button>
@@ -56,8 +63,8 @@ function NotificationPanel({ onClose }) {
             return (
               <button
                 key={n._id}
-                onClick={() => { if (!read) markRead(n._id); }}
-                className={`w-full text-right flex items-start gap-3 px-4 py-3 hover:bg-ink-50 transition ${!read ? 'bg-accent-50/50' : ''}`}
+                onClick={() => handleClick(n)}
+                className={`w-full text-right flex items-start gap-3 px-4 py-3 hover:bg-ink-50 transition ${!read ? 'bg-accent-50/40' : ''}`}
               >
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
                   n.type === 'post' ? 'bg-muted-100 text-muted-700' :
@@ -67,14 +74,15 @@ function NotificationPanel({ onClose }) {
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 mb-0.5">
+                  <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="text-xs font-semibold text-ink-400">{TYPE_LABEL[n.type]}</span>
-                    {!read && <span className="h-1.5 w-1.5 rounded-full bg-accent inline-block" />}
+                    {!read && <span className="h-1.5 w-1.5 rounded-full bg-accent inline-block shrink-0" />}
                   </div>
                   <div className="text-sm font-semibold text-ink leading-snug">{n.title}</div>
                   {n.body && <div className="text-xs text-ink-400 truncate mt-0.5">{n.body}</div>}
                   <div className="text-xs text-ink-300 mt-1">{timeAgo(n.createdAt)}</div>
                 </div>
+                <ChevronLeft className="h-3.5 w-3.5 text-ink-300 shrink-0 mt-1" />
               </button>
             );
           })
@@ -84,7 +92,7 @@ function NotificationPanel({ onClose }) {
   );
 }
 
-function SearchDropdown({ q, results, loading, onClose }) {
+function SearchDropdown({ q, results, loading, onNavigate }) {
   if (!q || q.length < 2) return null;
   const hasResults = results.posts?.length || results.jobs?.length || results.benefits?.length;
 
@@ -97,13 +105,25 @@ function SearchDropdown({ q, results, loading, onClose }) {
       ) : (
         <div className="divide-y divide-ink-50 max-h-80 overflow-y-auto">
           {results.posts?.map((p) => (
-            <SearchItem key={p._id} icon={PostIcon} label="פוסט" title={p.content?.slice(0, 60)} sub={timeAgo(p.createdAt)} onClick={onClose} />
+            <SearchItem
+              key={p._id} icon={PostIcon} label="פוסט"
+              title={p.content?.slice(0, 60)} sub={timeAgo(p.createdAt)}
+              onClick={() => onNavigate(`/app/feed?post=${p._id}`)}
+            />
           ))}
           {results.jobs?.map((j) => (
-            <SearchItem key={j._id} icon={JobIcon} label="משרה" title={j.title} sub={j.company} onClick={onClose} />
+            <SearchItem
+              key={j._id} icon={JobIcon} label="משרה"
+              title={j.title} sub={j.company}
+              onClick={() => onNavigate(`/app/jobs?job=${j._id}`)}
+            />
           ))}
           {results.benefits?.map((b) => (
-            <SearchItem key={b._id} icon={BenefitIcon} label="הטבה" title={b.title} sub={b.businessName || b.category} onClick={onClose} />
+            <SearchItem
+              key={b._id} icon={BenefitIcon} label="הטבה"
+              title={b.title} sub={b.businessName || b.category}
+              onClick={() => onNavigate(`/app/benefits?benefit=${b._id}`)}
+            />
           ))}
         </div>
       )}
@@ -130,9 +150,7 @@ function SearchItem({ icon: Icon, label, title, sub, onClick }) {
 function SidebarContent({ onNavigate }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
   const handleLogout = () => { logout(); navigate('/login'); };
-
   const fullName = [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ');
 
   return (
@@ -146,7 +164,6 @@ function SidebarContent({ onNavigate }) {
           </div>
         </div>
       </div>
-
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {NAV.map((item) => (
           <NavLink
@@ -166,7 +183,6 @@ function SidebarContent({ onNavigate }) {
           </NavLink>
         ))}
       </nav>
-
       <div className="p-3 border-t border-white/10">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
           <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center font-bold text-white">
@@ -186,6 +202,7 @@ function SidebarContent({ onNavigate }) {
 }
 
 export default function DashboardLayout() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [q, setQ] = useState('');
@@ -221,6 +238,12 @@ export default function DashboardLayout() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const handleSearchNavigate = (path) => {
+    setShowSearch(false);
+    setQ('');
+    navigate(path);
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -265,7 +288,7 @@ export default function DashboardLayout() {
                   q={q}
                   results={searchResults}
                   loading={searchLoading}
-                  onClose={() => { setShowSearch(false); setQ(''); }}
+                  onNavigate={handleSearchNavigate}
                 />
               )}
             </div>

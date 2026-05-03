@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageSquare, Send, ImagePlus, X } from 'lucide-react';
@@ -9,26 +10,65 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useImageUpload } from '../hooks/useImageUpload.js';
 
 const IMAGE_MAX_MB = 5;
+const PAGE_SIZE = 10;
 
 export default function FeedPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get('post');
+
   const [posts, setPosts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [content, setContent] = useState('');
   const [posting, setPosting] = useState(false);
   const { upload, uploading, preview, clear } = useImageUpload();
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
+  const sentinelRef = useRef(null);
+  const postRefs = useRef({});
 
-  const fetchPosts = async () => {
+  const fetchPage = async (p, replace = false) => {
     try {
-      const { data } = await api.get('/posts');
-      setPosts(data.posts);
+      const { data } = await api.get(`/posts?page=${p}&limit=${PAGE_SIZE}`);
+      setPosts((prev) => replace ? data.posts : [...prev, ...data.posts]);
+      setHasMore(data.hasMore);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { fetchPage(1, true); }, []);
+
+  // Scroll to highlighted post
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    const el = postRefs.current[highlightId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSearchParams({}, { replace: true });
+    }
+  }, [highlightId, posts, loading]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          const next = page + 1;
+          setPage(next);
+          setLoadingMore(true);
+          fetchPage(next);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, page]);
 
   const handleImagePick = async (e) => {
     const file = e.target.files?.[0];
@@ -98,7 +138,6 @@ export default function FeedPage() {
               placeholder="מה בא לך לשתף עם הקהילה?"
               className="input resize-none"
             />
-
             {(preview || pendingImageUrl) && (
               <div className="relative w-fit">
                 <img src={preview || pendingImageUrl} alt="" className="h-32 w-auto rounded-xl object-cover border border-ink-100" />
@@ -107,7 +146,6 @@ export default function FeedPage() {
                 </button>
               </div>
             )}
-
             <div className="flex items-center justify-between">
               <label className={`inline-flex items-center gap-2 text-sm text-ink-500 hover:text-ink cursor-pointer transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <ImagePlus className="h-4 w-4" />
@@ -130,38 +168,51 @@ export default function FeedPage() {
       ) : (
         <AnimatePresence>
           {posts.map((p) => (
-            <PostCard
+            <div
               key={p._id}
-              post={p}
-              currentUserId={user._id}
-              onLike={() => toggleLike(p)}
-              onComment={(text, reset) => addComment(p._id, text, reset)}
-            />
+              ref={(el) => { if (el) postRefs.current[p._id] = el; }}
+            >
+              <PostCard
+                post={p}
+                highlight={p._id === highlightId}
+                currentUserId={user._id}
+                onLike={() => toggleLike(p)}
+                onComment={(text, reset) => addComment(p._id, text, reset)}
+              />
+            </div>
           ))}
         </AnimatePresence>
+      )}
+
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-4" />
+      {loadingMore && <SkeletonList count={2} />}
+      {!hasMore && posts.length > 0 && (
+        <p className="text-center text-sm text-ink-300 pb-4">אין עוד פוסטים</p>
       )}
     </div>
   );
 }
 
-function PostCard({ post, currentUserId, onLike, onComment }) {
+function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
   const [showComments, setShowComments] = useState(false);
   const [draft, setDraft] = useState('');
   const liked = post.likes?.some((id) => id === currentUserId);
+  const authorName = [post.author?.profile?.firstName, post.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה';
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="card p-5 mb-3"
+      className={`card p-5 mb-3 transition-shadow ${highlight ? 'ring-2 ring-accent shadow-soft' : ''}`}
     >
       <header className="flex items-center gap-3 mb-3">
         <div className="h-10 w-10 rounded-full bg-muted-100 text-muted-700 flex items-center justify-center font-bold">
-          {[post.author?.profile?.firstName, post.author?.profile?.lastName].filter(Boolean).join(' ')?.[0] || '?'}
+          {authorName[0] || '?'}
         </div>
         <div>
-          <div className="font-semibold text-ink text-sm">{[post.author?.profile?.firstName, post.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה'}</div>
+          <div className="font-semibold text-ink text-sm">{authorName}</div>
           <div className="text-xs text-ink-400">{timeAgo(post.createdAt)}</div>
         </div>
       </header>
@@ -193,17 +244,20 @@ function PostCard({ post, currentUserId, onLike, onComment }) {
 
       {showComments && (
         <div className="mt-3 pt-3 border-t border-ink-100 space-y-3">
-          {post.comments?.map((c) => (
-            <div key={c._id} className="flex gap-2">
-              <div className="h-8 w-8 rounded-full bg-ink-100 text-ink-700 flex items-center justify-center text-xs font-bold">
-                {[c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ')?.[0] || '?'}
+          {post.comments?.map((c) => {
+            const cName = [c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה';
+            return (
+              <div key={c._id} className="flex gap-2">
+                <div className="h-8 w-8 rounded-full bg-ink-100 text-ink-700 flex items-center justify-center text-xs font-bold">
+                  {cName[0] || '?'}
+                </div>
+                <div className="flex-1 rounded-xl bg-ink-50 px-3 py-2">
+                  <div className="text-xs font-semibold text-ink">{cName}</div>
+                  <p className="text-sm text-ink-700">{c.text}</p>
+                </div>
               </div>
-              <div className="flex-1 rounded-xl bg-ink-50 px-3 py-2">
-                <div className="text-xs font-semibold text-ink">{[c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה'}</div>
-                <p className="text-sm text-ink-700">{c.text}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <form
             onSubmit={(e) => { e.preventDefault(); onComment(draft, () => setDraft('')); }}
             className="flex gap-2"

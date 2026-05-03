@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -12,27 +13,77 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useImageUpload } from '../hooks/useImageUpload.js';
 
 const CATEGORIES = ['כללי', 'מסעדות', 'בריאות', 'ספורט', 'בידור', 'קניות', 'חינוך', 'נסיעות', 'טכנולוגיה', 'אחר'];
+const PAGE_SIZE = 12;
 
 export default function BenefitsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get('benefit');
+
   const [benefits, setBenefits] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('all');
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const sentinelRef = useRef(null);
 
-  const fetchBenefits = async () => {
+  const fetchPage = async (p, replace = false, filters = { category }) => {
     try {
-      const { data } = await api.get('/benefits');
-      setBenefits(data.benefits);
+      const params = new URLSearchParams({ page: p, limit: PAGE_SIZE });
+      if (filters.category !== 'all') params.set('category', filters.category);
+      const { data } = await api.get(`/benefits?${params}`);
+      setBenefits((prev) => replace ? data.benefits : [...prev, ...data.benefits]);
+      setHasMore(data.hasMore);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  useEffect(() => { fetchBenefits(); }, []);
+  useEffect(() => {
+    setPage(1);
+    setLoading(true);
+    setBenefits([]);
+    fetchPage(1, true, { category });
+  }, [category]);
+
+  // Open modal for highlighted benefit
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    const found = benefits.find((b) => b._id === highlightId);
+    if (found) {
+      setSelected(found);
+      setSearchParams({}, { replace: true });
+    } else {
+      // Fetch it directly if not in loaded list
+      api.get(`/benefits/${highlightId}`)
+        .then(({ data }) => { setSelected(data.benefit); setSearchParams({}, { replace: true }); })
+        .catch(() => {});
+    }
+  }, [highlightId, benefits, loading]);
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          const next = page + 1;
+          setPage(next);
+          setLoadingMore(true);
+          fetchPage(next, false, { category });
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, page, category]);
 
   const categories = useMemo(() => {
     const set = new Set(benefits.map((b) => b.category).filter(Boolean));
@@ -40,7 +91,6 @@ export default function BenefitsPage() {
   }, [benefits]);
 
   const filtered = benefits.filter((b) => {
-    if (category !== 'all' && b.category !== category) return false;
     if (q && !`${b.title} ${b.description} ${b.businessName}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
@@ -99,9 +149,9 @@ export default function BenefitsPage() {
                 key={b._id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
+                transition={{ delay: Math.min(i, 5) * 0.04 }}
                 onClick={() => setSelected(b)}
-                className="card overflow-hidden hover:shadow-soft transition group text-right w-full"
+                className={`card overflow-hidden hover:shadow-soft transition group text-right w-full ${b._id === highlightId ? 'ring-2 ring-accent' : ''}`}
               >
                 <div className="h-36 bg-gradient-to-bl from-muted-200 to-olive-100 relative flex items-center justify-center overflow-hidden">
                   {b.imageUrl ? (
@@ -131,12 +181,25 @@ export default function BenefitsPage() {
         </div>
       )}
 
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-4" />
+      {loadingMore && <SkeletonGrid count={3} />}
+      {!hasMore && benefits.length > 0 && (
+        <p className="text-center text-sm text-ink-300 pb-4">אין עוד הטבות</p>
+      )}
+
       <AnimatePresence>
         {selected && <BenefitModal benefit={selected} onClose={() => setSelected(null)} />}
         {showForm && (
           <BenefitFormModal
             onClose={() => setShowForm(false)}
-            onCreated={() => { setShowForm(false); fetchBenefits(); }}
+            onCreated={() => {
+              setShowForm(false);
+              setPage(1);
+              setLoading(true);
+              setBenefits([]);
+              fetchPage(1, true, { category });
+            }}
           />
         )}
       </AnimatePresence>
