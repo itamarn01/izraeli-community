@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, MapPin, Briefcase, Building2, Send, EyeOff, Plus, X, Upload, ImagePlus,
-  Globe, Facebook, Instagram, Phone,
+  Globe, Facebook, Instagram, Phone, Pencil, Trash2, Users, FileText, ChevronDown,
 } from 'lucide-react';
 import api from '../api/client';
 import { SkeletonList } from '../components/skeletons/Skeletons.jsx';
@@ -12,35 +13,91 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useImageUpload } from '../hooks/useImageUpload.js';
 
 const IMAGE_MAX_MB = 5;
+const PAGE_SIZE = 10;
 
 export default function JobsPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get('job');
+
   const [jobs, setJobs] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState('');
   const [type, setType] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [showApply, setShowApply] = useState(null);
+  const [editJob, setEditJob] = useState(null);
+  const sentinelRef = useRef(null);
+  const jobRefs = useRef({});
 
-  const fetchJobs = async () => {
+  const fetchPage = async (p, replace = false, filters = { q, type }) => {
     try {
-      const { data } = await api.get('/jobs');
-      setJobs(data.jobs);
+      const params = new URLSearchParams({ page: p, limit: PAGE_SIZE });
+      if (filters.type !== 'all') params.set('type', filters.type);
+      const { data } = await api.get(`/jobs?${params}`);
+      setJobs((prev) => replace ? data.jobs : [...prev, ...data.jobs]);
+      setHasMore(data.hasMore);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  useEffect(() => { fetchJobs(); }, []);
+  useEffect(() => {
+    setPage(1);
+    setLoading(true);
+    setJobs([]);
+    fetchPage(1, true, { q, type });
+  }, [type]);
+
+  // Scroll to highlighted job
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    const el = jobRefs.current[highlightId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSearchParams({}, { replace: true });
+    }
+  }, [highlightId, jobs, loading]);
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          const next = page + 1;
+          setPage(next);
+          setLoadingMore(true);
+          fetchPage(next, false, { q, type });
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, page, q, type]);
 
   const filtered = useMemo(
-    () => jobs.filter((j) => {
-      if (type !== 'all' && j.type !== type) return false;
-      if (q && !`${j.title} ${j.company} ${j.description}`.toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    }),
-    [jobs, q, type]
+    () => q
+      ? jobs.filter((j) => `${j.title} ${j.company} ${j.description}`.toLowerCase().includes(q.toLowerCase()))
+      : jobs,
+    [jobs, q]
   );
+
+  const deleteJob = async (jobId) => {
+    if (!confirm('למחוק את המשרה? פעולה זו אינה הפיכה.')) return;
+    try {
+      await api.delete(`/jobs/${jobId}`);
+      setJobs((prev) => prev.filter((j) => j._id !== jobId));
+      toast.success('המשרה נמחקה');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה במחיקה');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -75,15 +132,42 @@ export default function JobsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((j) => (
-            <JobCard key={j._id} job={j} onApply={() => setShowApply(j)} currentUserId={user._id} />
+            <div key={j._id} ref={(el) => { if (el) jobRefs.current[j._id] = el; }}>
+              <JobCard
+                job={j}
+                highlight={j._id === highlightId}
+                onApply={() => setShowApply(j)}
+                onEdit={() => setEditJob(j)}
+                onDelete={() => deleteJob(j._id)}
+                currentUserId={user._id}
+              />
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-4" />
+      {loadingMore && <SkeletonList count={2} />}
+      {!hasMore && jobs.length > 0 && (
+        <p className="text-center text-sm text-ink-300 pb-4">אין עוד משרות</p>
       )}
 
       <AnimatePresence>
         {showForm && (
           <Modal title="פרסום משרה חדשה" onClose={() => setShowForm(false)}>
-            <NewJobForm onCreated={() => { setShowForm(false); fetchJobs(); }} />
+            <JobForm onDone={(newJob) => { setShowForm(false); if (newJob) setJobs((p) => [newJob, ...p]); }} />
+          </Modal>
+        )}
+        {editJob && (
+          <Modal title="עריכת משרה" onClose={() => setEditJob(null)}>
+            <JobForm
+              initial={editJob}
+              onDone={(updated) => {
+                setEditJob(null);
+                if (updated) setJobs((prev) => prev.map((j) => j._id === updated._id ? updated : j));
+              }}
+            />
           </Modal>
         )}
         {showApply && (
@@ -96,85 +180,207 @@ export default function JobsPage() {
   );
 }
 
-function JobCard({ job, onApply, currentUserId }) {
+function JobCard({ job, onApply, onEdit, onDelete, currentUserId, highlight }) {
   const isOwner = job.postedBy?._id === currentUserId;
   const hasSocial = job.socialMedia && Object.values(job.socialMedia).some(Boolean);
+  const [showApps, setShowApps] = useState(false);
+  const [apps, setApps] = useState(null);
+  const [appsLoading, setAppsLoading] = useState(false);
+
+  const loadApplications = async () => {
+    if (apps !== null) { setShowApps((s) => !s); return; }
+    setAppsLoading(true);
+    try {
+      const { data } = await api.get(`/jobs/${job._id}/applications`);
+      setApps(data.applications);
+      setShowApps(true);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בטעינת המועמדויות');
+    } finally {
+      setAppsLoading(false);
+    }
+  };
+
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden hover:shadow-soft transition">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`card overflow-hidden hover:shadow-soft transition ${highlight ? 'ring-2 ring-accent' : ''}`}
+    >
       {job.imageUrl && (
         <div className="h-40 overflow-hidden">
           <img src={job.imageUrl} alt={job.title} className="w-full h-full object-cover" />
         </div>
       )}
-      <div className="p-5 flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs text-ink-400">
-            <Building2 className="h-3.5 w-3.5" />
-            <span className="font-semibold text-muted-700">{job.company}</span>
-            <span>·</span>
-            <span>{timeAgo(job.createdAt)}</span>
-          </div>
-          <h3 className="mt-1 text-lg font-bold text-ink">{job.title}</h3>
-          <p className="mt-1.5 text-sm text-ink-500 line-clamp-2">{job.description}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="chip"><Briefcase className="h-3 w-3" />{JOB_TYPE_LABELS[job.type] || job.type}</span>
-            {job.location && <span className="chip"><MapPin className="h-3 w-3" />{job.location}</span>}
-            {job.salaryRange && <span className="chip-accent">{job.salaryRange}</span>}
-          </div>
-          {(job.website || hasSocial) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {job.website && (
-                <a href={job.website} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
-                  <Globe className="h-3 w-3" />אתר
-                </a>
-              )}
-              {job.socialMedia?.facebook && (
-                <a href={job.socialMedia.facebook} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
-                  <Facebook className="h-3 w-3 text-blue-500" />פייסבוק
-                </a>
-              )}
-              {job.socialMedia?.instagram && (
-                <a href={job.socialMedia.instagram} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
-                  <Instagram className="h-3 w-3 text-pink-500" />אינסטגרם
-                </a>
-              )}
-              {job.socialMedia?.whatsapp && (
-                <a href={`https://wa.me/${job.socialMedia.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
-                  <Phone className="h-3 w-3 text-green-500" />וואטסאפ
-                </a>
-              )}
-              {job.socialMedia?.tiktok && (
-                <a href={job.socialMedia.tiktok} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
-                  <Globe className="h-3 w-3" />טיקטוק
-                </a>
-              )}
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-xs text-ink-400">
+              <Building2 className="h-3.5 w-3.5" />
+              <span className="font-semibold text-muted-700">{job.company}</span>
+              <span>·</span>
+              <span>{timeAgo(job.createdAt)}</span>
             </div>
-          )}
+            <h3 className="mt-1 text-lg font-bold text-ink">{job.title}</h3>
+            <p className="mt-1.5 text-sm text-ink-500 line-clamp-2">{job.description}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="chip"><Briefcase className="h-3 w-3" />{JOB_TYPE_LABELS[job.type] || job.type}</span>
+              {job.location && <span className="chip"><MapPin className="h-3 w-3" />{job.location}</span>}
+              {job.salaryRange && <span className="chip-accent">{job.salaryRange}</span>}
+            </div>
+            {(job.website || hasSocial) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {job.website && (
+                  <a href={job.website} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
+                    <Globe className="h-3 w-3" />אתר
+                  </a>
+                )}
+                {job.socialMedia?.facebook && (
+                  <a href={job.socialMedia.facebook} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
+                    <Facebook className="h-3 w-3 text-blue-500" />פייסבוק
+                  </a>
+                )}
+                {job.socialMedia?.instagram && (
+                  <a href={job.socialMedia.instagram} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
+                    <Instagram className="h-3 w-3 text-pink-500" />אינסטגרם
+                  </a>
+                )}
+                {job.socialMedia?.whatsapp && (
+                  <a href={`https://wa.me/${job.socialMedia.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
+                    <Phone className="h-3 w-3 text-green-500" />וואטסאפ
+                  </a>
+                )}
+                {job.socialMedia?.tiktok && (
+                  <a href={job.socialMedia.tiktok} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
+                    <Globe className="h-3 w-3" />טיקטוק
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 items-end">
+            {!isOwner ? (
+              <button onClick={onApply} className="btn-primary">
+                <Send className="h-3.5 w-3.5" />
+                הגשת מועמדות
+              </button>
+            ) : (
+              <div className="flex flex-col gap-1.5 items-end">
+                <span className="chip">המשרה שלי</span>
+                <div className="flex gap-1.5">
+                  <button onClick={onEdit} className="btn-outline !py-1.5 !px-2.5 text-xs">
+                    <Pencil className="h-3.5 w-3.5" />
+                    עריכה
+                  </button>
+                  <button onClick={onDelete} className="rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition !py-1.5 !px-2.5 text-xs flex items-center gap-1">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    מחיקה
+                  </button>
+                </div>
+                <button
+                  onClick={loadApplications}
+                  disabled={appsLoading}
+                  className="btn-outline !py-1.5 !px-2.5 text-xs"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  {appsLoading ? 'טוען…' : `מועמדויות`}
+                  {apps !== null && <span className="font-bold">({apps.length})</span>}
+                  <ChevronDown className={`h-3 w-3 transition-transform ${showApps ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div>
-          {!isOwner ? (
-            <button onClick={onApply} className="btn-primary">
-              <Send className="h-3.5 w-3.5" />
-              הגשת מועמדות
-            </button>
-          ) : (
-            <span className="chip">המשרה שלי</span>
+
+        {/* Applications panel */}
+        <AnimatePresence>
+          {showApps && apps && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 pt-4 border-t border-ink-100">
+                <h4 className="text-sm font-bold text-ink mb-3 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-accent" />
+                  מועמדים ({apps.length})
+                </h4>
+                {apps.length === 0 ? (
+                  <p className="text-sm text-ink-400">טרם הוגשו מועמדויות.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {apps.map((app) => {
+                      const name = app.isAnonymous
+                        ? 'מועמד אנונימי'
+                        : [app.user?.profile?.firstName, app.user?.profile?.lastName].filter(Boolean).join(' ') || app.user?.email || '—';
+                      return (
+                        <div key={app._id} className="rounded-xl border border-ink-100 bg-canvas p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-muted-100 text-muted-700 flex items-center justify-center text-xs font-bold">
+                                {name[0] || '?'}
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold text-ink">{name}</div>
+                                {!app.isAnonymous && app.user?.email && (
+                                  <div className="text-xs text-ink-400" dir="ltr">{app.user.email}</div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {app.cvUrl && (
+                                <a
+                                  href={app.cvUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="chip hover:bg-ink-100 transition text-xs"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  קו"ח
+                                </a>
+                              )}
+                              <span className="text-xs text-ink-400">{timeAgo(app.createdAt)}</span>
+                            </div>
+                          </div>
+                          {app.message && (
+                            <p className="text-sm text-ink-600 bg-ink-50 rounded-lg p-2 leading-relaxed">{app.message}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </motion.div>
   );
 }
 
-function NewJobForm({ onCreated }) {
+function JobForm({ initial, onDone }) {
+  const isEdit = !!initial;
   const [form, setForm] = useState({
-    title: '', company: '', location: '', type: 'full_time',
-    description: '', salaryRange: '', contactEmail: '', website: '',
-    socialMedia: { facebook: '', instagram: '', whatsapp: '', tiktok: '' },
+    title: initial?.title || '',
+    company: initial?.company || '',
+    location: initial?.location || '',
+    type: initial?.type || 'full_time',
+    description: initial?.description || '',
+    salaryRange: initial?.salaryRange || '',
+    contactEmail: initial?.contactEmail || '',
+    website: initial?.website || '',
+    socialMedia: {
+      facebook: initial?.socialMedia?.facebook || '',
+      instagram: initial?.socialMedia?.instagram || '',
+      whatsapp: initial?.socialMedia?.whatsapp || '',
+      tiktok: initial?.socialMedia?.tiktok || '',
+    },
   });
   const [loading, setLoading] = useState(false);
-  const { upload, uploading, preview, clear } = useImageUpload();
-  const [imageUrl, setImageUrl] = useState('');
+  const { upload, uploading, preview, clear } = useImageUpload(initial?.imageUrl);
+  const [imageUrl, setImageUrl] = useState(initial?.imageUrl || '');
 
   const handleImagePick = async (e) => {
     const file = e.target.files?.[0];
@@ -190,11 +396,14 @@ function NewJobForm({ onCreated }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/jobs', { ...form, imageUrl });
-      toast.success('המשרה פורסמה');
-      onCreated();
+      const payload = { ...form, imageUrl };
+      const { data } = isEdit
+        ? await api.patch(`/jobs/${initial._id}`, payload)
+        : await api.post('/jobs', payload);
+      toast.success(isEdit ? 'המשרה עודכנה' : 'המשרה פורסמה');
+      onDone(isEdit ? data.job : data.job);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'שגיאה ביצירת המשרה');
+      toast.error(err?.response?.data?.message || 'שגיאה');
     } finally {
       setLoading(false);
     }
@@ -207,9 +416,9 @@ function NewJobForm({ onCreated }) {
         <label className={`flex items-center gap-3 rounded-xl border border-dashed border-ink-200 p-3 cursor-pointer hover:bg-ink-50 ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
           <ImagePlus className="h-5 w-5 text-ink-400 shrink-0" />
           <span className="text-sm text-ink-500 flex-1">
-            {uploading ? 'מעלה תמונה…' : preview ? 'תמונה נבחרה — לחצו להחלפה' : 'בחירת תמונה'}
+            {uploading ? 'מעלה תמונה…' : preview || imageUrl ? 'תמונה נבחרה — לחצו להחלפה' : 'בחירת תמונה'}
           </span>
-          {preview && <img src={preview} alt="" className="h-12 w-16 object-cover rounded-lg" />}
+          {(preview || imageUrl) && <img src={preview || imageUrl} alt="" className="h-12 w-16 object-cover rounded-lg" />}
           <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} disabled={uploading} />
         </label>
         {imageUrl && (
@@ -281,7 +490,7 @@ function NewJobForm({ onCreated }) {
         </div>
       </div>
       <button type="submit" className="btn-primary w-full" disabled={loading || uploading}>
-        {loading ? 'שומר…' : 'פרסום משרה'}
+        {loading ? 'שומר…' : isEdit ? 'שמירת שינויים' : 'פרסום משרה'}
       </button>
     </form>
   );
@@ -367,7 +576,7 @@ function Modal({ title, onClose, children }) {
         className="card w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-ink-100 px-5 py-3 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-ink-100 px-5 py-3 flex items-center justify-between z-10">
           <h3 className="font-bold text-ink">{title}</h3>
           <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-500">
             <X className="h-4 w-4" />
