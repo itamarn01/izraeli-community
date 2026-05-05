@@ -131,7 +131,7 @@ export default function AdminUsersPage() {
                       {u.profile?.phone && <span className="text-ink-300">· {u.profile.phone}</span>}
                     </div>
                     <div className="text-xs text-ink-400 mt-0.5">
-                      {u.organization?.name || '—'} · נוצר {timeAgo(u.createdAt)}
+                      {u.organization?.name || '—'} · {u.profile?.gedud || 'ללא גדוד'} · נוצר {timeAgo(u.createdAt)}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
