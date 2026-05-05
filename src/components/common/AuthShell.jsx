@@ -16,13 +16,7 @@ export default function AuthShell({ title, subtitle, step, totalSteps, children 
         <div className="absolute -top-24 -right-16 h-72 w-72 rounded-full bg-olive/10 blur-3xl z-10" />
 
         <div className="relative z-20">
-          <div className="flex items-center gap-3">
-            <img src="/izraeli-logo.png" className="h-12 w-12" alt="" />
-            <div>
-              <div className="brand-display text-lg">חטיבת יזרעאלי</div>
-              <div className="text-xs text-ink-200">קהילה דיגיטלית</div>
-            </div>
-          </div>
+          <Logo size={48} variant="light" />
         </div>
 
         <div className="relative z-20 max-w-sm">
