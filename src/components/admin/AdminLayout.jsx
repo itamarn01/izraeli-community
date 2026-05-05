@@ -5,6 +5,7 @@ import {
   LogOut, Menu, ShieldCheck,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
+import Logo from '../common/Logo.jsx';
 
 const NAV = [
   { to: '/admin', label: 'דשבורד', icon: LayoutDashboard, end: true },
@@ -24,13 +25,8 @@ function SidebarContent({ onNavigate }) {
     <div className="flex h-full flex-col bg-ink text-white">
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-accent" />
-          </div>
-          <div>
-            <div className="brand-display text-base">מערכת ניהול</div>
-            <div className="text-[11px] text-white/60">קהילת חטיבת יזרעאלי</div>
-          </div>
+          <Logo size={36} variant="light" />
+          <div className="brand-display text-base">ניהול חברותא</div>
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

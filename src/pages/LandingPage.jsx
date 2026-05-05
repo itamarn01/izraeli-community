@@ -54,13 +54,13 @@ export default function LandingPage() {
           >
             <span className="chip-accent mb-4">
               <ShieldCheck className="h-3.5 w-3.5" />
-              קהילת חטיבת יזרעאלי
+              קהילת הלוחמים
             </span>
             <h1 className="brand-display text-4xl md:text-5xl text-white leading-tight drop-shadow-lg">
               הבית הדיגיטלי <br /> של לוחמי החטיבה
             </h1>
             <p className="mt-5 text-white/90 text-lg leading-relaxed max-w-md drop-shadow">
-              פלטפורמה אחת שמרכזת הטבות, משרות וקהילה — ייעודית לחברי החטיבה ובני המשפחות.
+              פלטפורמה אחת שמרכזת הטבות, משרות וקהילה — ייעודית לחברי הקהילה ובני המשפחות.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link to="/join" className="btn-primary w-full sm:w-auto">
@@ -79,9 +79,7 @@ export default function LandingPage() {
           >
             <div className="absolute -inset-6 bg-gradient-to-bl from-accent-100/60 to-olive-100/60 rounded-[40px] blur-2xl" />
             <div className="relative card p-8 flex flex-col items-center text-center">
-              <img src="/izraeli-logo.png" alt="" className="h-40 w-40 animate-floatY" />
-              <h3 className="mt-4 brand-display text-2xl text-ink">חטיבת יזרעאלי</h3>
-              <p className="mt-1 text-sm text-ink-400">קהילת הלוחמים</p>
+              <img src="/havruta-logo-final.png" alt="" className="h-32 w-auto animate-floatY" />
             </div>
           </motion.div>
         </div>
@@ -115,7 +113,7 @@ export default function LandingPage() {
       <footer className="border-t border-ink-100 bg-white">
         <div className="mx-auto max-w-6xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Logo size={32} />
-          <p className="text-xs text-ink-400">© קהילת חטיבת יזרעאלי. כל הזכויות שמורות.</p>
+          <p className="text-xs text-ink-400">© חברותא — קהילת הלוחמים. כל הזכויות שמורות.</p>
         </div>
       </footer>
     </div>

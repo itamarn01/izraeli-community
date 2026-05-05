@@ -11,9 +11,9 @@ export default function SplashScreen({ message = 'טוען את הקהילה…'
       >
         <div className="absolute inset-0 -z-10 rounded-full bg-muted-200 blur-2xl opacity-60 animate-pulse" />
         <motion.img
-          src="/izraeli-logo.png"
-          alt="לוגו חטיבת יזרעאלי"
-          className="h-28 w-28 drop-shadow-xl"
+          src="/havruta-logo-final.png"
+          alt="חברותא"
+          className="h-24 w-auto drop-shadow-xl"
           animate={{ y: [0, -8, 0] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -23,9 +23,9 @@ export default function SplashScreen({ message = 'טוען את הקהילה…'
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="mt-6 brand-display text-2xl text-ink"
+        className="mt-6 brand-display text-3xl text-ink"
       >
-        קהילת חטיבת יזרעאלי
+        חברותא
       </motion.h1>
 
       <motion.p

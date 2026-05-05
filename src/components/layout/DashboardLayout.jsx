@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useNotifications } from '../../context/NotificationContext.jsx';
 import api from '../../api/client.js';
 import { timeAgo } from '../../utils/format.js';
+import Logo from '../common/Logo.jsx';
 
 const NAV = [
   { to: '/app', label: 'דשבורד', icon: LayoutDashboard, end: true },
@@ -66,11 +67,10 @@ function NotificationPanel({ onClose }) {
                 onClick={() => handleClick(n)}
                 className={`w-full text-right flex items-start gap-3 px-4 py-3 hover:bg-ink-50 transition ${!read ? 'bg-accent-50/40' : ''}`}
               >
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                  n.type === 'post' ? 'bg-muted-100 text-muted-700' :
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${n.type === 'post' ? 'bg-muted-100 text-muted-700' :
                   n.type === 'job' ? 'bg-olive-100 text-olive-700' :
-                  'bg-accent-100 text-accent-700'
-                }`}>
+                    'bg-accent-100 text-accent-700'
+                  }`}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -155,14 +155,8 @@ function SidebarContent({ onNavigate }) {
 
   return (
     <div className="flex h-full flex-col bg-ink text-white">
-      <div className="px-5 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <img src="/izraeli-logo.png" alt="" className="h-10 w-10" />
-          <div>
-            <div className="brand-display text-base">חטיבת יזרעאלי</div>
-            <div className="text-[11px] text-white/60">קהילה דיגיטלית</div>
-          </div>
-        </div>
+      <div className="px-5 py-6 border-b border-white/10">
+        <Logo size={40} variant="light" />
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {NAV.map((item) => (

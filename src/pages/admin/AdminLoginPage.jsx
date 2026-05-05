@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { User, ShieldCheck } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
 import PasswordInput from '../../components/common/PasswordInput.jsx';
+import Logo from '../../components/common/Logo.jsx';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -42,12 +43,8 @@ export default function AdminLoginPage() {
         animate={{ opacity: 1, y: 0 }}
         className="relative w-full max-w-md"
       >
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-accent/15 border border-accent/30 mb-3">
-            <ShieldCheck className="h-8 w-8 text-accent" />
-          </div>
-          <h1 className="text-2xl font-bold text-white brand-display">מערכת ניהול</h1>
-          <p className="text-sm text-white/60 mt-1">קהילת חטיבת יזרעאלי</p>
+        <div className="text-center mb-8 flex justify-center">
+          <Logo size={64} variant="light" />
         </div>
 
         <div className="card p-7 bg-white/95 backdrop-blur">
