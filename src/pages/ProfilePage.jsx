@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Phone, MapPin, Calendar, Heart, Briefcase, Baby, FileText, Upload,
-  ShieldCheck, Pencil, Check, X, Plus, Trash2, AlertCircle, GraduationCap,
+  ShieldCheck, Pencil, Check, X, Plus, Trash2, AlertCircle, GraduationCap, Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/client';
@@ -29,6 +29,9 @@ const STUDENT_LEVELS = [
   { v: 'masters', label: 'תואר שני' },
   { v: 'doctorate', label: 'דוקטורט' },
   { v: 'other', label: 'אחר' },
+];
+const GEDUDIM = [
+  'משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול'
 ];
 
 function Pill({ active, onClick, children }) {
@@ -70,6 +73,7 @@ export default function ProfilePage() {
     dateOfBirth: pf.dateOfBirth ? new Date(pf.dateOfBirth).toISOString().slice(0, 10) : '',
     gender: pf.gender || '',
     maritalStatus: pf.maritalStatus || '',
+    gedud: pf.gedud || '',
     employmentStatus: pf.employmentStatus || '',
     studentLevel: pf.studentLevel || '',
     children: pf.children?.map((c) => ({
@@ -267,6 +271,7 @@ export default function ProfilePage() {
               <Field icon={Calendar} label="תאריך לידה" value={formatDate(p.dateOfBirth)} />
               <Field icon={MapPin} label="כתובת" value={p.address?.city && p.address?.street ? `${p.address.street}, ${p.address.city}` : ''} />
               <Field icon={ShieldCheck} label="מגדר" value={GENDER_LABELS[p.gender]} />
+              <Field icon={Users} label="גדוד" value={p.gedud} />
             </>
           )}
         </div>
@@ -283,6 +288,12 @@ export default function ProfilePage() {
               <label className="label">מצב משפחתי</label>
               <div className="flex flex-wrap gap-2">
                 {MARITAL.map((o) => <Pill key={o.v} active={form.maritalStatus === o.v} onClick={() => set('maritalStatus', o.v)}>{o.label}</Pill>)}
+              </div>
+            </div>
+            <div>
+              <label className="label">גדוד</label>
+              <div className="flex flex-wrap gap-2">
+                {GEDUDIM.map((g) => <Pill key={g} active={form.gedud === g} onClick={() => set('gedud', g)}>{g}</Pill>)}
               </div>
             </div>
             <div>

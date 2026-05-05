@@ -14,10 +14,19 @@ const initial = {
   dateOfBirth: '',
   gender: '',
   maritalStatus: '',
+  gedud: '',
   employmentStatus: '',
   studentLevel: '',
   children: [],
 };
+
+const GEDUDIM = [
+  'משמר העמקים',
+  'אבישי',
+  'הכרמל',
+  'אבשלום',
+  'חרב שאול'
+];
 
 const GENDERS = [
   { v: 'male', label: 'זכר' },
@@ -94,7 +103,7 @@ export default function QuestionnairePage() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.gender || !form.maritalStatus || !form.employmentStatus) {
+    if (!form.gender || !form.maritalStatus || !form.employmentStatus || !form.gedud) {
       toast.error('יש לבחור את כל השדות החובה');
       return;
     }
@@ -148,6 +157,16 @@ export default function QuestionnairePage() {
               <div>
                 <label className="label">תאריך לידה</label>
                 <input type="date" className="input" value={form.dateOfBirth} onChange={(e) => set('dateOfBirth', e.target.value)} required />
+              </div>
+            </div>
+            <div>
+              <label className="label">גדוד</label>
+              <div className="flex flex-wrap gap-2">
+                {GEDUDIM.map((g) => (
+                  <Pill key={g} active={form.gedud === g} onClick={() => set('gedud', g)}>
+                    {g}
+                  </Pill>
+                ))}
               </div>
             </div>
           </div>
