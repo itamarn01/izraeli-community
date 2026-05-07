@@ -1,15 +1,25 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Phone, MapPin, Calendar, Heart, Briefcase, Baby, FileText, Upload,
-  ShieldCheck, Pencil, Check, X, Plus, Trash2, AlertCircle, GraduationCap, Users,
+  ShieldCheck, Pencil, Check, X, Plus, Trash2, AlertCircle, GraduationCap, Users, Camera,
+  Lock, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/client';
 import {
   GENDER_LABELS, MARITAL_LABELS, EMPLOYMENT_LABELS, STUDENT_LEVEL_LABELS, formatDate,
 } from '../utils/format.js';
+
+const AVATAR_COLORS = ['#E74C3C','#9B59B6','#2980B9','#27AE60','#E67E22','#1ABC9C','#E91E63','#607D8B'];
+function getUserColor(id) {
+  let hash = 0;
+  const str = String(id || '');
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); hash |= 0; }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
 
 const GENDERS = [
   { v: 'male', label: 'זכר' }, { v: 'female', label: 'נקבה' }, { v: 'other', label: 'אחר' },
@@ -49,10 +59,23 @@ function Pill({ active, onClick, children }) {
 }
 
 export default function ProfilePage() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, logout } = useAuth();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
+
+  // Password change
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwLoading, setPwLoading] = useState(false);
+
+  // Delete account
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Email change flow
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -101,6 +124,25 @@ export default function ProfilePage() {
       toast.error(err?.response?.data?.message || 'שגיאה בשמירה');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onUploadAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('קובץ גדול מדי — עד 5MB'); return; }
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      await api.post('/users/me/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await refresh();
+      toast.success('תמונת הפרופיל עודכנה');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בהעלאה');
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -167,6 +209,37 @@ export default function ProfilePage() {
     }
   };
 
+  const changePassword = async (e) => {
+    e.preventDefault();
+    if (pwForm.next !== pwForm.confirm) { toast.error('הסיסמאות אינן תואמות'); return; }
+    if (pwForm.next.length < 8) { toast.error('הסיסמה החדשה חייבת להכיל לפחות 8 תווים'); return; }
+    setPwLoading(true);
+    try {
+      await api.post('/users/me/change-password', { currentPassword: pwForm.current, newPassword: pwForm.next });
+      toast.success('הסיסמה עודכנה בהצלחה');
+      setShowPasswordModal(false);
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'מחיקה') { toast.error('יש להקליד "מחיקה" לאישור'); return; }
+    setDeleteLoading(true);
+    try {
+      await api.delete('/users/me');
+      toast.success('החשבון נמחק');
+      logout();
+      navigate('/login');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה במחיקה');
+      setDeleteLoading(false);
+    }
+  };
+
   if (!user) return null;
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -204,9 +277,36 @@ export default function ProfilePage() {
       {/* Avatar + email */}
       <div className="card p-6">
         <div className="flex flex-col sm:flex-row gap-5 items-start">
-          <div className="h-20 w-20 rounded-full bg-gradient-to-bl from-accent to-accent-700 text-white flex items-center justify-center text-3xl font-bold shrink-0">
-            {(p.firstName?.[0] || user.email[0]).toUpperCase()}
-          </div>
+          <label
+            className="relative h-20 w-20 rounded-full shrink-0 cursor-pointer group"
+            title="לחצו להעלאת תמונת פרופיל"
+          >
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="תמונת פרופיל" className="h-20 w-20 rounded-full object-cover" />
+            ) : (
+              <div
+                className="h-20 w-20 rounded-full text-white flex items-center justify-center text-3xl font-bold"
+                style={{ backgroundColor: getUserColor(user._id) }}
+              >
+                {(p.firstName?.[0] || user.email[0]).toUpperCase()}
+              </div>
+            )}
+            <div className="absolute inset-0 rounded-full bg-ink/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              {avatarUploading ? (
+                <span className="text-white text-xs">מעלה…</span>
+              ) : (
+                <Camera className="h-6 w-6 text-white" />
+              )}
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onUploadAvatar}
+              disabled={avatarUploading}
+            />
+          </label>
           <div className="flex-1">
             {editing ? (
               <div className="grid grid-cols-2 gap-3">
@@ -427,6 +527,123 @@ export default function ProfilePage() {
           </label>
         )}
       </div>
+
+      {/* Password change */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-ink flex items-center gap-2">
+            <Lock className="h-4 w-4 text-accent" />
+            שינוי סיסמה
+          </h3>
+          <button onClick={() => setShowPasswordModal(true)} className="btn-outline !py-1.5 !px-3 text-sm">
+            שינוי סיסמה
+          </button>
+        </div>
+      </div>
+
+      {/* Danger zone */}
+      <div className="card p-6 border border-red-200">
+        <h3 className="font-bold text-red-700 flex items-center gap-2 mb-2">
+          <AlertTriangle className="h-4 w-4" />
+          מחיקת חשבון
+        </h3>
+        <p className="text-sm text-ink-500 mb-3">מחיקת החשבון היא פעולה בלתי הפיכה. כל הפוסטים, המשרות וההגשות שלך יימחקו לצמיתות.</p>
+        <button
+          onClick={() => { setDeleteConfirm(''); setShowDeleteModal(true); }}
+          className="btn-outline !border-red-300 !text-red-600 hover:!bg-red-50 !py-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          מחיקת חשבון
+        </button>
+      </div>
+
+      {/* Password change modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
+            onClick={() => setShowPasswordModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+              className="card w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 border-b border-ink-100 flex items-center justify-between">
+                <h3 className="font-bold text-ink">שינוי סיסמה</h3>
+                <button onClick={() => setShowPasswordModal(false)} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <form onSubmit={changePassword} className="p-5 space-y-4">
+                <div>
+                  <label className="label">סיסמה נוכחית</label>
+                  <input type="password" dir="ltr" className="input" value={pwForm.current} onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))} autoFocus />
+                </div>
+                <div>
+                  <label className="label">סיסמה חדשה</label>
+                  <input type="password" dir="ltr" className="input" value={pwForm.next} onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">אימות סיסמה חדשה</label>
+                  <input type="password" dir="ltr" className="input" value={pwForm.confirm} onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))} />
+                </div>
+                <button type="submit" className="btn-primary w-full" disabled={pwLoading}>
+                  {pwLoading ? 'מעדכן…' : 'עדכון סיסמה'}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete account modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+              className="card w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 border-b border-red-100 flex items-center justify-between bg-red-50 rounded-t-2xl">
+                <h3 className="font-bold text-red-700 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  מחיקת חשבון
+                </h3>
+                <button onClick={() => setShowDeleteModal(false)} className="h-8 w-8 rounded-lg hover:bg-red-100 flex items-center justify-center text-red-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <p className="text-sm text-ink-600">פעולה זו תמחק לצמיתות את החשבון, הפוסטים, המשרות וכל הנתונים הקשורים אליך. <strong>לא ניתן לשחזר.</strong></p>
+                <div>
+                  <label className="label">להמשך, הקלד/י <strong className="text-red-600">מחיקה</strong></label>
+                  <input
+                    className="input !border-red-200 focus:!border-red-400 focus:!ring-red-100"
+                    value={deleteConfirm}
+                    onChange={(e) => setDeleteConfirm(e.target.value)}
+                    placeholder='הקלד/י "מחיקה"'
+                    autoFocus
+                  />
+                </div>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirm !== 'מחיקה' || deleteLoading}
+                  className="w-full rounded-xl bg-red-600 text-white font-semibold py-2.5 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  {deleteLoading ? 'מוחק…' : 'מחיקת החשבון לצמיתות'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Email change modal */}
       <AnimatePresence>

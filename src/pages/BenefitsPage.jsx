@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Search, Gift, ExternalLink, Tag, X, Calendar, Code2, Globe, Facebook,
-  Instagram, Phone, Plus, Percent, DollarSign, Info, ShoppingBag, ImagePlus,
+  Instagram, Phone, Plus, Percent, Info, ShoppingBag, ImagePlus,
 } from 'lucide-react';
 import api from '../api/client';
 import { SkeletonGrid } from '../components/skeletons/Skeletons.jsx';
@@ -265,7 +265,7 @@ function BenefitModal({ benefit: b, onClose }) {
           {/* Price comparison */}
           {b.discountType === 'price_comparison' && b.originalPrice != null && b.discountedPrice != null && (
             <div className="flex items-center gap-4 rounded-xl bg-accent-50 border border-accent-100 p-4">
-              <DollarSign className="h-5 w-5 text-accent-700 shrink-0" />
+              <span className="text-lg font-bold text-accent-700 shrink-0">₪</span>
               <div className="flex items-baseline gap-3">
                 <span className="text-ink-400 line-through text-sm">₪{b.originalPrice}</span>
                 <span className="text-xl font-bold text-accent-700">₪{b.discountedPrice}</span>
