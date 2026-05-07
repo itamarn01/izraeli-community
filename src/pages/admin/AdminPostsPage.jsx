@@ -9,6 +9,13 @@ import adminApi from '../../api/adminClient.js';
 import { timeAgo } from '../../utils/format.js';
 
 const PAGE_SIZE = 25;
+const AVATAR_COLORS = ['#E74C3C','#9B59B6','#2980B9','#27AE60','#E67E22','#1ABC9C','#E91E63','#607D8B'];
+function getUserColor(id) {
+  let hash = 0;
+  const str = String(id || '');
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); hash |= 0; }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
 
 export default function AdminPostsPage() {
   const [posts, setPosts] = useState([]);
@@ -114,9 +121,16 @@ export default function AdminPostsPage() {
             return (
               <div key={p._id} className={`card p-4 transition ${p.isHidden ? 'opacity-60' : ''}`}>
                 <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-full bg-muted-100 text-muted-700 flex items-center justify-center font-bold shrink-0">
-                    {(p.author?.profile?.firstName?.[0] || p.author?.email?.[0] || '?').toUpperCase()}
-                  </div>
+                  {p.author?.avatarUrl ? (
+                    <img src={p.author.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div
+                      className="h-9 w-9 rounded-full text-white flex items-center justify-center font-bold shrink-0"
+                      style={{ backgroundColor: getUserColor(p.author?._id) }}
+                    >
+                      {(p.author?.profile?.firstName?.[0] || p.author?.email?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-ink">{author}</span>
@@ -151,9 +165,16 @@ export default function AdminPostsPage() {
                             const cName = [c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || c.user?.email || '—';
                             return (
                               <div key={c._id} className="flex items-start gap-2 rounded-xl bg-ink-50 p-2">
-                                <div className="h-6 w-6 rounded-full bg-ink-100 text-ink-700 flex items-center justify-center text-[10px] font-bold shrink-0">
-                                  {cName[0]?.toUpperCase() || '?'}
-                                </div>
+                                {c.user?.avatarUrl ? (
+                                  <img src={c.user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
+                                ) : (
+                                  <div
+                                    className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[10px] font-bold shrink-0"
+                                    style={{ backgroundColor: getUserColor(c.user?._id) }}
+                                  >
+                                    {cName[0]?.toUpperCase() || '?'}
+                                  </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                   <div className="text-xs font-semibold text-ink">{cName}</div>
                                   <p className="text-xs text-ink-700 mt-0.5">{c.text}</p>

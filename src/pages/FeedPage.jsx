@@ -12,6 +12,14 @@ import { useImageUpload } from '../hooks/useImageUpload.js';
 const IMAGE_MAX_MB = 5;
 const PAGE_SIZE = 10;
 
+const AVATAR_COLORS = ['#E74C3C','#9B59B6','#2980B9','#27AE60','#E67E22','#1ABC9C','#E91E63','#607D8B'];
+function getUserColor(id) {
+  let hash = 0;
+  const str = String(id || '');
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); hash |= 0; }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export default function FeedPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -127,9 +135,16 @@ export default function FeedPage() {
 
       <form onSubmit={submit} className="card p-4">
         <div className="flex gap-3 items-start">
-          <div className="h-10 w-10 rounded-full bg-accent text-white flex items-center justify-center font-bold shrink-0">
-            {user?.profile?.firstName?.[0] || '?'}
-          </div>
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+          ) : (
+            <div
+              className="h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0"
+              style={{ backgroundColor: getUserColor(user?._id) }}
+            >
+              {(user?.profile?.firstName?.[0] || user?.email?.[0] || '?').toUpperCase()}
+            </div>
+          )}
           <div className="flex-1 space-y-3">
             <textarea
               rows={2}
@@ -208,9 +223,16 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
       className={`card p-5 mb-3 transition-shadow ${highlight ? 'ring-2 ring-accent shadow-soft' : ''}`}
     >
       <header className="flex items-center gap-3 mb-3">
-        <div className="h-10 w-10 rounded-full bg-muted-100 text-muted-700 flex items-center justify-center font-bold">
-          {authorName[0] || '?'}
-        </div>
+        {post.author?.avatarUrl ? (
+          <img src={post.author.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+        ) : (
+          <div
+            className="h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0"
+            style={{ backgroundColor: getUserColor(post.author?._id) }}
+          >
+            {(post.author?.profile?.firstName?.[0] || authorName[0] || '?').toUpperCase()}
+          </div>
+        )}
         <div>
           <div className="font-semibold text-ink text-sm">{authorName}</div>
           <div className="text-xs text-ink-400">{timeAgo(post.createdAt)}</div>
@@ -248,9 +270,16 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
             const cName = [c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה';
             return (
               <div key={c._id} className="flex gap-2">
-                <div className="h-8 w-8 rounded-full bg-ink-100 text-ink-700 flex items-center justify-center text-xs font-bold">
-                  {cName[0] || '?'}
-                </div>
+                {c.user?.avatarUrl ? (
+                  <img src={c.user.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div
+                    className="h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ backgroundColor: getUserColor(c.user?._id) }}
+                  >
+                    {cName[0]?.toUpperCase() || '?'}
+                  </div>
+                )}
                 <div className="flex-1 rounded-xl bg-ink-50 px-3 py-2">
                   <div className="text-xs font-semibold text-ink">{cName}</div>
                   <p className="text-sm text-ink-700">{c.text}</p>

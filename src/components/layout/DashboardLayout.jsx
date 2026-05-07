@@ -3,10 +3,20 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Gift, Briefcase, MessagesSquare, UserCircle2,
   LogOut, Menu, X, Bell, Search, Briefcase as JobIcon, Gift as BenefitIcon,
-  MessagesSquare as PostIcon, Trash2, CheckCheck, ChevronLeft,
+  MessagesSquare as PostIcon, Trash2, CheckCheck, ChevronLeft, ChevronDown,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { TERMS_SECTIONS, PRIVACY_SECTIONS } from '../../content/legal.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useNotifications } from '../../context/NotificationContext.jsx';
+
+const AVATAR_COLORS = ['#E74C3C','#9B59B6','#2980B9','#27AE60','#E67E22','#1ABC9C','#E91E63','#607D8B'];
+function getUserColor(id) {
+  let hash = 0;
+  const str = String(id || '');
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); hash |= 0; }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
 import api from '../../api/client.js';
 import { timeAgo } from '../../utils/format.js';
 import Logo from '../common/Logo.jsx';
@@ -179,15 +189,131 @@ function SidebarContent({ onNavigate }) {
       </nav>
       <div className="p-3 border-t border-white/10">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center font-bold text-white">
-            {(user?.profile?.firstName?.[0] || user?.email?.[0] || '?').toUpperCase()}
-          </div>
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="תמונת פרופיל" className="h-9 w-9 rounded-full object-cover shrink-0" />
+          ) : (
+            <div
+              className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-white shrink-0"
+              style={{ backgroundColor: getUserColor(user?._id) }}
+            >
+              {(user?.profile?.firstName?.[0] || user?.email?.[0] || '?').toUpperCase()}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">{fullName || user?.email}</div>
             <div className="text-[11px] text-white/50 truncate">{user?.role === 'admin' ? 'מנהל קהילה' : 'חבר קהילה'}</div>
           </div>
           <button onClick={handleLogout} className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white" title="התנתקות">
             <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccordionSection({ title, sections }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-ink-200 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-right hover:bg-ink-50 transition"
+      >
+        <span className="font-semibold text-ink text-sm">{title}</span>
+        <ChevronDown className={`h-4 w-4 text-ink-400 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 max-h-60 overflow-y-auto space-y-4 border-t border-ink-100 pt-3">
+          {sections.map((s) => (
+            <div key={s.num}>
+              <div className="text-xs font-bold text-ink mb-1.5">{s.num}. {s.title}</div>
+              <ul className="space-y-1">
+                {s.points.map((p, i) => (
+                  <li key={i} className="flex gap-2 text-xs text-ink-500 leading-relaxed">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-accent shrink-0" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TermsModal() {
+  const { user, setUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [checked, setChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleAccept = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/users/me/accept-terms');
+      setUser(data.user);
+    } catch {
+      toast.error('שגיאה, נסה שנית');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => { logout(); navigate('/login'); };
+
+  if (user?.termsAcceptedAt) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm p-4">
+      <div className="card w-full max-w-md max-h-[90vh] flex flex-col shadow-xl">
+        {/* Header */}
+        <div className="px-5 pt-6 pb-4 border-b border-ink-100">
+          <Logo size={34} />
+          <h2 className="text-lg font-bold text-ink mt-4">תנאי שימוש ומדיניות פרטיות</h2>
+          <p className="text-sm text-ink-400 mt-1">יש לקרוא ולאשר לפני השימוש באפליקציה</p>
+        </div>
+
+        {/* Accordion sections */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <AccordionSection title="תנאי שימוש" sections={TERMS_SECTIONS} />
+          <AccordionSection title="מדיניות פרטיות" sections={PRIVACY_SECTIONS} />
+          <p className="text-xs text-ink-400 text-center pt-1">
+            לצפייה בגרסה המלאה:{' '}
+            <a href="/terms" target="_blank" rel="noreferrer" className="text-accent hover:underline">תנאי שימוש</a>
+            {' '}|{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer" className="text-accent hover:underline">מדיניות פרטיות</a>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-5 pt-4 border-t border-ink-100 space-y-3">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-accent cursor-pointer"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+            />
+            <span className="text-sm text-ink leading-snug">
+              קראתי ואני מסכים/מסכימה לתנאי השימוש ולמדיניות הפרטיות
+            </span>
+          </label>
+          <button
+            onClick={handleAccept}
+            disabled={!checked || loading}
+            className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? 'שומר…' : 'מאשר/ת והמשך'}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full text-sm text-ink-400 hover:text-ink py-1 transition"
+          >
+            יציאה מהמערכת
           </button>
         </div>
       </div>
@@ -241,6 +367,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-canvas">
+      <TermsModal />
       <aside className="hidden lg:flex fixed inset-y-0 right-0 w-72 z-30">
         <SidebarContent />
       </aside>

@@ -26,7 +26,7 @@ function SidebarContent({ onNavigate }) {
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
           <Logo size={36} variant="light" />
-          <div className="brand-display text-base">ניהול חברותא</div>
+          <div className="brand-display text-base">מערכת ניהול</div>
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

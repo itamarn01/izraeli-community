@@ -27,16 +27,19 @@ export default function JobsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState('');
   const [type, setType] = useState('all');
+  const [myFilter, setMyFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [showApply, setShowApply] = useState(null);
   const [editJob, setEditJob] = useState(null);
   const sentinelRef = useRef(null);
   const jobRefs = useRef({});
 
-  const fetchPage = async (p, replace = false, filters = { q, type }) => {
+  const fetchPage = async (p, replace = false, filters = { q, type, myFilter }) => {
     try {
       const params = new URLSearchParams({ page: p, limit: PAGE_SIZE });
       if (filters.type !== 'all') params.set('type', filters.type);
+      if (filters.myFilter === 'mine') params.set('mine', 'true');
+      if (filters.myFilter === 'applied') params.set('applied', 'true');
       const { data } = await api.get(`/jobs?${params}`);
       setJobs((prev) => replace ? data.jobs : [...prev, ...data.jobs]);
       setHasMore(data.hasMore);
@@ -50,8 +53,8 @@ export default function JobsPage() {
     setPage(1);
     setLoading(true);
     setJobs([]);
-    fetchPage(1, true, { q, type });
-  }, [type]);
+    fetchPage(1, true, { q, type, myFilter });
+  }, [type, myFilter]);
 
   // Scroll to highlighted job
   useEffect(() => {
@@ -72,14 +75,14 @@ export default function JobsPage() {
           const next = page + 1;
           setPage(next);
           setLoadingMore(true);
-          fetchPage(next, false, { q, type });
+          fetchPage(next, false, { q, type, myFilter });
         }
       },
       { rootMargin: '200px' }
     );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, loading, page, q, type]);
+  }, [hasMore, loadingMore, loading, page, q, type, myFilter]);
 
   const filtered = useMemo(
     () => q
@@ -112,17 +115,36 @@ export default function JobsPage() {
         </button>
       </header>
 
-      <div className="card p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
-          <input className="input pr-10" placeholder="חיפוש משרה…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="card p-4 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+            <input className="input pr-10" placeholder="חיפוש משרה…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <select value={type} onChange={(e) => setType(e.target.value)} className="input sm:max-w-xs">
+            <option value="all">כל סוגי המשרות</option>
+            {Object.entries(JOB_TYPE_LABELS).map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
         </div>
-        <select value={type} onChange={(e) => setType(e.target.value)} className="input sm:max-w-xs">
-          <option value="all">כל סוגי המשרות</option>
-          {Object.entries(JOB_TYPE_LABELS).map(([v, label]) => (
-            <option key={v} value={v}>{label}</option>
+        <div className="flex gap-2">
+          {[
+            { v: 'all', label: 'כל המשרות' },
+            { v: 'mine', label: 'המשרות שלי' },
+            { v: 'applied', label: 'הגשות שלי' },
+          ].map(({ v, label }) => (
+            <button
+              key={v}
+              onClick={() => setMyFilter(v)}
+              className={`rounded-xl px-3.5 py-1.5 text-sm font-medium transition ${
+                myFilter === v ? 'bg-accent text-white' : 'bg-ink-50 text-ink-500 hover:bg-ink-100'
+              }`}
+            >
+              {label}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       {loading ? (
