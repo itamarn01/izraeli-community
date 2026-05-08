@@ -323,9 +323,8 @@ export default function AdminUsersPage() {
                       )}
                       {u.role === 'admin' && <span className="chip text-xs text-accent-700 bg-accent-50">מנהל</span>}
                     </div>
-                    <div className="text-xs text-ink-500 mt-0.5 flex items-center gap-2 flex-wrap" dir="ltr">
-                      <span>{u.email}</span>
-                      {u.profile?.phone && <span className="text-ink-300">· {u.profile.phone}</span>}
+                    <div className="text-xs text-ink-500 mt-0.5 truncate" dir="ltr">
+                      {u.email}{u.profile?.phone ? ` · ${u.profile.phone}` : ''}
                     </div>
                     <div className="text-xs text-ink-400 mt-0.5">
                       {u.organization?.name || '—'} · {u.profile?.gedud || 'ללא גדוד'} · נוצר {timeAgo(u.createdAt)}
@@ -466,21 +465,37 @@ function UserProfileModal({ user: initialUser, onClose }) {
       ) : (
         <div className="space-y-5">
           {/* Hero: avatar + name + badges */}
-          <div className="flex items-center gap-4 pb-4 border-b border-ink-100">
+          <div className="flex items-start gap-3 pb-4 border-b border-ink-100">
             {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" className="h-20 w-20 rounded-2xl object-cover shrink-0 shadow-sm" />
+              <img src={user.avatarUrl} alt="" className="h-16 w-16 rounded-2xl object-cover shrink-0 shadow-sm" />
             ) : (
               <div
-                className="h-20 w-20 rounded-2xl text-white flex items-center justify-center text-3xl font-bold shrink-0 shadow-sm"
+                className="h-16 w-16 rounded-2xl text-white flex items-center justify-center text-2xl font-bold shrink-0 shadow-sm"
                 style={{ backgroundColor: getUserColor(user._id) }}
               >
                 {(p.firstName?.[0] || user.email[0] || '?').toUpperCase()}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-xl font-bold text-ink">{name}</div>
-              {age && <div className="text-sm text-ink-400">בן/בת {age}</div>}
-              <div className="text-sm text-ink-400 mt-0.5" dir="ltr">{user.email}</div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-lg font-bold text-ink leading-tight">{name}</div>
+                  {age && <div className="text-sm text-ink-400">בן/בת {age}</div>}
+                  <div className="text-xs text-ink-400 mt-0.5 truncate" dir="ltr">{user.email}</div>
+                </div>
+                {stats && (
+                  <div className="flex gap-2 shrink-0">
+                    <div className="rounded-xl bg-ink-50 px-2.5 py-1.5 text-center min-w-[44px]">
+                      <div className="text-base font-bold text-ink">{stats.postCount}</div>
+                      <div className="text-[10px] text-ink-400">פוסטים</div>
+                    </div>
+                    <div className="rounded-xl bg-ink-50 px-2.5 py-1.5 text-center min-w-[44px]">
+                      <div className="text-base font-bold text-ink">{stats.jobCount}</div>
+                      <div className="text-[10px] text-ink-400">משרות</div>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 mt-2 flex-wrap">
                 {user.isEmailVerified
                   ? <span className="chip text-xs text-olive-700 bg-olive-50">מאומת</span>
@@ -491,18 +506,6 @@ function UserProfileModal({ user: initialUser, onClose }) {
                 )}
               </div>
             </div>
-            {stats && (
-              <div className="flex gap-3 shrink-0">
-                <div className="rounded-xl bg-ink-50 px-3 py-2 text-center min-w-[52px]">
-                  <div className="text-xl font-bold text-ink">{stats.postCount}</div>
-                  <div className="text-xs text-ink-400">פוסטים</div>
-                </div>
-                <div className="rounded-xl bg-ink-50 px-3 py-2 text-center min-w-[52px]">
-                  <div className="text-xl font-bold text-ink">{stats.jobCount}</div>
-                  <div className="text-xs text-ink-400">משרות</div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Contact */}

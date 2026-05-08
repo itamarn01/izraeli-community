@@ -21,6 +21,7 @@ import LandingPage from './pages/LandingPage.jsx';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx';
 import TermsPage from './pages/TermsPage.jsx';
 import PrivacyPage from './pages/PrivacyPage.jsx';
+import AccessibilityStatementPage from './pages/AccessibilityStatementPage.jsx';
 
 import AdminLoginPage from './pages/admin/AdminLoginPage.jsx';
 import AdminVerifyPage from './pages/admin/AdminVerifyPage.jsx';
@@ -74,6 +75,7 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/accessibility-statement" element={<AccessibilityStatementPage />} />
       <Route path="/join" element={<OrgCodePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />

@@ -203,7 +203,8 @@ export default function JobsPage() {
 }
 
 function JobCard({ job, onApply, onEdit, onDelete, currentUserId, highlight }) {
-  const isOwner = job.postedBy?._id === currentUserId;
+  const ownerId = job.postedBy?._id ?? job.postedBy;
+  const isOwner = String(ownerId) === String(currentUserId);
   const hasSocial = job.socialMedia && Object.values(job.socialMedia).some(Boolean);
   const [showApps, setShowApps] = useState(false);
   const [apps, setApps] = useState(null);
