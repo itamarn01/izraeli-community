@@ -187,6 +187,14 @@ function SidebarContent({ onNavigate }) {
           </NavLink>
         ))}
       </nav>
+      <div className="px-3 py-2 border-t border-white/10">
+        <a
+          href="/accessibility-statement"
+          className="block text-center text-[11px] text-white/40 hover:text-white/70 py-1 transition"
+        >
+          הצהרת נגישות
+        </a>
+      </div>
       <div className="p-3 border-t border-white/10">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
           {user?.avatarUrl ? (
@@ -433,7 +441,7 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 px-4 lg:px-8 py-6">
+        <main id="main-content" tabIndex="-1" className="flex-1 px-4 lg:px-8 py-6">
           <Outlet />
         </main>
       </div>

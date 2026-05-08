@@ -71,7 +71,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          <motion.div
+          {/*     <motion.div
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7 }}
@@ -81,7 +81,7 @@ export default function LandingPage() {
             <div className="relative card p-8 flex flex-col items-center text-center">
               <img src="/havruta-logo-final.png" alt="" className="h-32 w-auto animate-floatY" />
             </div>
-          </motion.div>
+          </motion.div> */}
         </div>
       </section>
 
