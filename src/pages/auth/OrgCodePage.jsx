@@ -73,6 +73,11 @@ export default function OrgCodePage() {
             כניסה
           </Link>
         </div>
+        <div className="text-center">
+          <Link to="/" className="text-xs text-ink-400 hover:text-accent hover:underline">
+            חזרה לדף הבית
+          </Link>
+        </div>
       </form>
     </AuthShell>
   );
