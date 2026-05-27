@@ -19,7 +19,11 @@ export default function AdminLoginPage() {
     try {
       const data = await login(form.username, form.password);
       if (data.nextStep === 'verify_email') {
-        toast('נשלח קוד אימות למייל', { icon: '✉️' });
+        if (data.emailSent === false) {
+          toast('לא ניתן לשלוח מייל אימות. ניתן לשלוח שוב בעמוד האימות.', { icon: '⚠️' });
+        } else {
+          toast('נשלח קוד אימות למייל', { icon: '✉️' });
+        }
         navigate(`/admin/verify?u=${encodeURIComponent(form.username)}`);
       } else {
         toast.success('התחברת בהצלחה');

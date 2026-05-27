@@ -33,8 +33,12 @@ export default function AdminVerifyPage() {
     if (!username) return;
     setResending(true);
     try {
-      await resendOtp(username);
-      toast.success('קוד חדש נשלח');
+      const data = await resendOtp(username);
+      if (data.emailSent === false) {
+        toast.error('שליחת המייל נכשלה — בדוק הגדרות SMTP בשרת');
+      } else {
+        toast.success('קוד חדש נשלח');
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'שגיאה בשליחת הקוד');
     } finally {
