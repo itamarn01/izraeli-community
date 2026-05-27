@@ -20,8 +20,12 @@ export default function AdminSetupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await bootstrap(form);
-      toast.success('חשבון נוצר. נשלח קוד אימות למייל');
+      const data = await bootstrap(form);
+      if (data.emailSent === false) {
+        toast('חשבון נוצר, אך שליחת המייל נכשלה. ניתן לשלוח שוב בעמוד האימות.', { icon: '⚠️' });
+      } else {
+        toast.success('חשבון נוצר. נשלח קוד אימות למייל');
+      }
       navigate(`/admin/verify?u=${encodeURIComponent(form.username)}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'שגיאה ביצירת החשבון');
