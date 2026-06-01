@@ -129,9 +129,23 @@ export default function FeedPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-ink">פיד הקהילה</h1>
-        <p className="text-sm text-ink-400 mt-1">שתפו, התייעצו והכירו חברים נוספים</p>
+        <h1 className="text-2xl font-bold text-ink">מדברים 186</h1>
       </header>
+
+      <div className="rounded-2xl border border-accent/20 bg-gradient-to-bl from-accent/5 to-olive/5 p-5 space-y-3">
+        <p className="text-sm font-semibold text-ink leading-relaxed">
+          מרחב השיח של חטיבת יזרעאלי — מקום להכיר, לשתף, להתייעץ ולהישאר מחוברים גם מעבר לשירות עצמו.
+        </p>
+        <p className="text-sm text-ink-600 leading-relaxed">
+          כאן אפשר לפתוח שיחה על כל מה שנוגע לחיים סביב החטיבה: לחפש טרמפ לאימון, לבדוק אם למישהו יש ציוד שחסר, להתייעץ בין בני ובנות זוג, לשתף ביוזמה קהילתית, או פשוט לכתוב משהו קטן שמחבר בין אנשים.
+        </p>
+        <p className="text-sm text-ink-600 leading-relaxed">
+          יש משהו שיכול לעזור, לעניין או לחבר מישהו מהקהילה? זה המקום לכתוב אותו.
+        </p>
+        <p className="text-xs text-ink-400 font-medium border-t border-ink-100 pt-3">
+          שומרים כאן על שיח מכבד, נעים וקהילתי.
+        </p>
+      </div>
 
       <form onSubmit={submit} className="card p-4">
         <div className="flex gap-3 items-start">
@@ -213,28 +227,36 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
   const [showComments, setShowComments] = useState(false);
   const [draft, setDraft] = useState('');
   const liked = post.likes?.some((id) => id === currentUserId);
-  const authorName = [post.author?.profile?.firstName, post.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה';
+  const isAdmin = post.isAdminPost;
+  const authorName = isAdmin
+    ? (post.adminDisplayName || 'הנהלה')
+    : ([post.author?.profile?.firstName, post.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה');
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className={`card p-5 mb-3 transition-shadow ${highlight ? 'ring-2 ring-accent shadow-soft' : ''}`}
+      className={`card p-5 mb-3 transition-shadow ${highlight ? 'ring-2 ring-accent shadow-soft' : ''} ${isAdmin ? 'border-r-4 border-r-accent' : ''}`}
     >
       <header className="flex items-center gap-3 mb-3">
-        {post.author?.avatarUrl ? (
+        {!isAdmin && post.author?.avatarUrl ? (
           <img src={post.author.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
         ) : (
           <div
-            className="h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0"
-            style={{ backgroundColor: getUserColor(post.author?._id) }}
+            className={`h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0 ${isAdmin ? 'bg-accent' : ''}`}
+            style={!isAdmin ? { backgroundColor: getUserColor(post.author?._id) } : {}}
           >
-            {(post.author?.profile?.firstName?.[0] || authorName[0] || '?').toUpperCase()}
+            {isAdmin ? '🛡' : (post.author?.profile?.firstName?.[0] || authorName[0] || '?').toUpperCase()}
           </div>
         )}
         <div>
-          <div className="font-semibold text-ink text-sm">{authorName}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-semibold text-ink text-sm">{authorName}</div>
+            {isAdmin && (
+              <span className="text-[10px] font-bold bg-accent text-white px-2 py-0.5 rounded-full">הנהלה</span>
+            )}
+          </div>
           <div className="text-xs text-ink-400">{timeAgo(post.createdAt)}</div>
         </div>
       </header>
@@ -267,21 +289,27 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
       {showComments && (
         <div className="mt-3 pt-3 border-t border-ink-100 space-y-3">
           {post.comments?.map((c) => {
-            const cName = [c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה';
+            const isAdminC = c.isAdminComment;
+            const cName = isAdminC
+              ? (c.adminDisplayName || 'הנהלה')
+              : ([c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה');
             return (
               <div key={c._id} className="flex gap-2">
-                {c.user?.avatarUrl ? (
+                {!isAdminC && c.user?.avatarUrl ? (
                   <img src={c.user.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
                 ) : (
                   <div
-                    className="h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{ backgroundColor: getUserColor(c.user?._id) }}
+                    className={`h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 ${isAdminC ? 'bg-accent' : ''}`}
+                    style={!isAdminC ? { backgroundColor: getUserColor(c.user?._id) } : {}}
                   >
-                    {cName[0]?.toUpperCase() || '?'}
+                    {isAdminC ? '🛡' : cName[0]?.toUpperCase() || '?'}
                   </div>
                 )}
-                <div className="flex-1 rounded-xl bg-ink-50 px-3 py-2">
-                  <div className="text-xs font-semibold text-ink">{cName}</div>
+                <div className={`flex-1 rounded-xl px-3 py-2 ${isAdminC ? 'bg-accent-50 border border-accent/20' : 'bg-ink-50'}`}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-xs font-semibold text-ink">{cName}</div>
+                    {isAdminC && <span className="text-[9px] font-bold bg-accent text-white px-1.5 py-0.5 rounded-full">הנהלה</span>}
+                  </div>
                   <p className="text-sm text-ink-700">{c.text}</p>
                 </div>
               </div>
