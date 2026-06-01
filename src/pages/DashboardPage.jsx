@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles } from 'lucide-react';
+import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SkeletonStat, SkeletonGrid, SkeletonList } from '../components/skeletons/Skeletons.jsx';
@@ -56,6 +56,71 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <section>
+        <SectionHeader title="עדכונים אחרונים מהקהילה" linkTo="/app/feed" />
+        {loading ? (
+          <SkeletonList count={3} />
+        ) : data.posts.length === 0 ? (
+          <EmptyState text="עדיין אין פוסטים — היו הראשונים לשתף" />
+        ) : (
+          <div className="space-y-3">
+            {data.posts.slice(0, 3).map((p) => {
+              const isAdminPost = p.isAdminPost;
+              const authorName = isAdminPost
+                ? (p.adminDisplayName || 'הנהלה')
+                : ([p.author?.profile?.firstName, p.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה');
+              return (
+                <Link key={p._id} to={`/app/feed?post=${p._id}`} className="card p-4 flex gap-3 items-start hover:shadow-soft transition block">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold shrink-0 ${isAdminPost ? 'bg-accent text-white' : 'bg-muted-100 text-muted-700'}`}>
+                    {isAdminPost ? <ShieldCheck className="h-5 w-5" /> : (p.author?.profile?.firstName?.[0] || '?')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-semibold text-ink">{authorName}</span>
+                      {isAdminPost && <span className="text-[9px] font-bold bg-accent text-white px-1.5 py-0.5 rounded-full">הנהלה</span>}
+                      <span className="text-ink-400">·</span>
+                      <span className="text-ink-400">{timeAgo(p.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-ink-700 line-clamp-2">{p.content}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader title="הטבות חדשות" linkTo="/app/benefits" />
+        {loading ? (
+          <SkeletonGrid count={3} />
+        ) : data.benefits.length === 0 ? (
+          <EmptyState text="אין כרגע הטבות זמינות" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {data.benefits.slice(0, 3).map((b) => (
+              <Link key={b._id} to={`/app/benefits?benefit=${b._id}`} className="card overflow-hidden hover:shadow-soft transition group block text-right">
+                <div className="h-36 bg-gradient-to-bl from-muted-200 to-olive-100 relative flex items-center justify-center overflow-hidden">
+                  {b.imageUrl ? (
+                    <img src={b.imageUrl} alt={b.title} className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
+                  ) : (
+                    <Gift className="h-10 w-10 text-white/70" />
+                  )}
+                  {(b.discountType === 'percentage' && b.discountPercent) && (
+                    <span className="absolute top-2 right-2 bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full">{b.discountPercent}% הנחה</span>
+                  )}
+                </div>
+                <div className="p-4">
+                  {b.businessName && <div className="text-xs text-muted-700 font-semibold mb-1">{b.businessName}</div>}
+                  <h3 className="font-bold text-ink line-clamp-1">{b.title}</h3>
+                  <p className="mt-1 text-sm text-ink-500 line-clamp-2">{b.description}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {loading ? (
           <>
@@ -71,57 +136,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-
-      <section>
-        <SectionHeader title="הטבות חדשות" linkTo="/app/benefits" />
-        {loading ? (
-          <SkeletonGrid count={3} />
-        ) : data.benefits.length === 0 ? (
-          <EmptyState text="אין כרגע הטבות זמינות" />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {data.benefits.slice(0, 3).map((b) => (
-              <div key={b._id} className="card p-5 hover:shadow-soft transition group">
-                <div className="h-10 w-10 rounded-xl bg-accent-50 text-accent-700 flex items-center justify-center mb-3">
-                  <Gift className="h-5 w-5" />
-                </div>
-                <h3 className="font-bold text-ink line-clamp-1">{b.title}</h3>
-                <p className="mt-1 text-sm text-ink-500 line-clamp-2">{b.description}</p>
-                {b.discount && (
-                  <span className="chip-accent mt-3">{b.discount}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader title="עדכונים אחרונים מהקהילה" linkTo="/app/feed" />
-        {loading ? (
-          <SkeletonList count={3} />
-        ) : data.posts.length === 0 ? (
-          <EmptyState text="עדיין אין פוסטים — היו הראשונים לשתף" />
-        ) : (
-          <div className="space-y-3">
-            {data.posts.slice(0, 3).map((p) => (
-              <div key={p._id} className="card p-4 flex gap-3 items-start">
-                <div className="h-10 w-10 rounded-full bg-muted-100 text-muted-700 flex items-center justify-center font-bold">
-                  {p.author?.profile?.firstName?.[0] || '?'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-semibold text-ink">{[p.author?.profile?.firstName, p.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה'}</span>
-                    <span className="text-ink-400">·</span>
-                    <span className="text-ink-400">{timeAgo(p.createdAt)}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-ink-700 line-clamp-2">{p.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

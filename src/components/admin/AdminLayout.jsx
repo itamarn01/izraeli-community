@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, MessagesSquare, Gift,
-  LogOut, Menu, ShieldCheck,
+  LogOut, Menu, ShieldCheck, Send,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
 import Logo from '../common/Logo.jsx';
@@ -14,6 +14,7 @@ const NAV = [
   { to: '/admin/jobs', label: 'דרושים', icon: Briefcase },
   { to: '/admin/posts', label: 'פיד', icon: MessagesSquare },
   { to: '/admin/benefits', label: 'הטבות', icon: Gift },
+  { to: '/admin/benefit-suggestions', label: 'הצעות הטבות', icon: Send },
 ];
 
 function SidebarContent({ onNavigate }) {

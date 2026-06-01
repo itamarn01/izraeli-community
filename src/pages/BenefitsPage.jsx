@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Search, Gift, ExternalLink, Tag, X, Calendar, Code2, Globe, Facebook,
-  Instagram, Phone, Plus, Percent, Info, ShoppingBag, ImagePlus,
+  Instagram, Phone, Plus, Percent, Info, ShoppingBag, ImagePlus, Send,
 } from 'lucide-react';
 import api from '../api/client';
 import { SkeletonGrid } from '../components/skeletons/Skeletons.jsx';
@@ -30,6 +30,7 @@ export default function BenefitsPage() {
   const [category, setCategory] = useState('all');
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showSuggest, setShowSuggest] = useState(false);
   const sentinelRef = useRef(null);
 
   const fetchPage = async (p, replace = false, filters = { category }) => {
@@ -108,12 +109,18 @@ export default function BenefitsPage() {
           <h1 className="text-2xl font-bold text-ink">מועדון הטבות</h1>
           <p className="text-sm text-ink-400 mt-1">לחצו על הטבה לפרטים נוספים ומימוש</p>
         </div>
-        {isAdmin && (
-          <button onClick={() => setShowForm(true)} className="btn-primary">
-            <Plus className="h-4 w-4" />
-            הוספת הטבה
+        <div className="flex gap-2">
+          <button onClick={() => setShowSuggest(true)} className="btn-outline">
+            <Send className="h-4 w-4" />
+            הצעת הטבה
           </button>
-        )}
+          {isAdmin && (
+            <button onClick={() => setShowForm(true)} className="btn-primary">
+              <Plus className="h-4 w-4" />
+              הוספת הטבה
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="card p-4 flex flex-col sm:flex-row gap-3">
@@ -190,6 +197,7 @@ export default function BenefitsPage() {
 
       <AnimatePresence>
         {selected && <BenefitModal benefit={selected} onClose={() => setSelected(null)} />}
+        {showSuggest && <SuggestBenefitModal onClose={() => setShowSuggest(false)} />}
         {showForm && (
           <BenefitFormModal
             onClose={() => setShowForm(false)}
@@ -583,6 +591,82 @@ function BenefitFormModal({ onClose, onCreated }) {
 
           <button type="submit" className="btn-primary w-full" disabled={loading || uploading}>
             {loading ? 'שומר…' : 'הוספת הטבה'}
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function SuggestBenefitModal({ onClose }) {
+  const [form, setForm] = useState({ businessName: '', description: '', contactName: '', contactPhone: '', website: '' });
+  const [loading, setLoading] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post('/benefits/suggest', form);
+      toast.success('ההצעה נשלחה להנהלה, תודה!');
+      onClose();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בשליחה');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 12 }}
+        className="card w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
+          <div className="flex items-center gap-2">
+            <Send className="h-5 w-5 text-accent" />
+            <h3 className="font-bold text-ink">הצעת הטבה להנהלה</h3>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-400">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form onSubmit={submit} className="p-5 space-y-4">
+          <p className="text-sm text-ink-500">מכירים עסק שיכול להציע הטבה לחברי הקהילה? שלחו לנו את הפרטים ונבדוק.</p>
+          <div>
+            <label className="label">שם העסק *</label>
+            <input className="input" value={form.businessName} onChange={(e) => set('businessName', e.target.value)} required />
+          </div>
+          <div>
+            <label className="label">תיאור ההטבה המוצעת *</label>
+            <textarea rows={3} className="input" value={form.description} onChange={(e) => set('description', e.target.value)} required />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">שם איש קשר</label>
+              <input className="input" value={form.contactName} onChange={(e) => set('contactName', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">טלפון</label>
+              <input dir="ltr" className="input" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="label">אתר (אופציונלי)</label>
+            <input dir="ltr" className="input" placeholder="https://..." value={form.website} onChange={(e) => set('website', e.target.value)} />
+          </div>
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? 'שולח…' : 'שליחת ההצעה'}
           </button>
         </form>
       </motion.div>

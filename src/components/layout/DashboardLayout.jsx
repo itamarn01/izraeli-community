@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Gift, Briefcase, MessagesSquare, UserCircle2,
   LogOut, Menu, X, Bell, Search, Briefcase as JobIcon, Gift as BenefitIcon,
@@ -25,7 +25,7 @@ const NAV = [
   { to: '/app', label: 'דשבורד', icon: LayoutDashboard, end: true },
   { to: '/app/benefits', label: 'מועדון הטבות', icon: Gift },
   { to: '/app/jobs', label: 'דרושים', icon: Briefcase },
-  { to: '/app/feed', label: 'פיד הקהילה', icon: MessagesSquare },
+  { to: '/app/feed', label: 'מדברים 186', icon: MessagesSquare },
   { to: '/app/profile', label: 'הפרופיל שלי', icon: UserCircle2 },
 ];
 
@@ -197,20 +197,22 @@ function SidebarContent({ onNavigate }) {
       </div>
       <div className="p-3 border-t border-white/10">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="תמונת פרופיל" className="h-9 w-9 rounded-full object-cover shrink-0" />
-          ) : (
-            <div
-              className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-white shrink-0"
-              style={{ backgroundColor: getUserColor(user?._id) }}
-            >
-              {(user?.profile?.firstName?.[0] || user?.email?.[0] || '?').toUpperCase()}
+          <Link to="/app/profile" onClick={onNavigate} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="תמונת פרופיל" className="h-9 w-9 rounded-full object-cover shrink-0" />
+            ) : (
+              <div
+                className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-white shrink-0"
+                style={{ backgroundColor: getUserColor(user?._id) }}
+              >
+                {(user?.profile?.firstName?.[0] || user?.email?.[0] || '?').toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold truncate">{fullName || user?.email}</div>
+              <div className="text-[11px] text-white/50 truncate">{user?.role === 'admin' ? 'מנהל קהילה' : 'חבר קהילה'}</div>
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold truncate">{fullName || user?.email}</div>
-            <div className="text-[11px] text-white/50 truncate">{user?.role === 'admin' ? 'מנהל קהילה' : 'חבר קהילה'}</div>
-          </div>
+          </Link>
           <button onClick={handleLogout} className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white" title="התנתקות">
             <LogOut className="h-4 w-4" />
           </button>
