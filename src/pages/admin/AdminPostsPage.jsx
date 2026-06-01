@@ -313,6 +313,32 @@ function ComposeModal({ orgs, adminName, onClose, onCreated }) {
   const [content, setContent] = useState('');
   const [orgId, setOrgId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+
+  const handleImagePick = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('יש להעלות קובץ תמונה בלבד'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('גודל התמונה חייב להיות עד 5MB'); return; }
+    setImagePreview(URL.createObjectURL(file));
+    setImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const { data } = await adminApi.post('/upload/image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setImageUrl(data.url);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בהעלאת התמונה');
+      setImagePreview(null);
+    } finally {
+      setImageUploading(false);
+    }
+    e.target.value = '';
+  };
+
+  const removeImage = () => { setImagePreview(null); setImageUrl(''); };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -323,6 +349,7 @@ function ComposeModal({ orgs, adminName, onClose, onCreated }) {
         content: content.trim(),
         organization: orgId,
         adminDisplayName: adminName,
+        imageUrl: imageUrl || '',
       });
       onCreated(data.post);
     } catch (err) {
@@ -344,10 +371,10 @@ function ComposeModal({ orgs, adminName, onClose, onCreated }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
-        className="card w-full max-w-lg"
+        className="card w-full max-w-lg max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100 shrink-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-accent" />
             <h3 className="font-bold text-ink">פרסום פוסט כהנהלה</h3>
@@ -356,7 +383,7 @@ function ComposeModal({ orgs, adminName, onClose, onCreated }) {
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={submit} className="p-5 space-y-4">
+        <form onSubmit={submit} className="p-5 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="label">ארגון</label>
             <select className="input" value={orgId} onChange={(e) => setOrgId(e.target.value)} required>
@@ -369,19 +396,43 @@ function ComposeModal({ orgs, adminName, onClose, onCreated }) {
           <div>
             <label className="label">תוכן הפוסט</label>
             <textarea
-              rows={5}
-              className="input resize-none"
+              className="input resize-y min-h-[160px]"
               placeholder="כתוב הודעה לקהילה…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               required
             />
           </div>
+
+          {imagePreview ? (
+            <div className="relative rounded-xl overflow-hidden border border-ink-100">
+              <img src={imagePreview} alt="" className="w-full max-h-52 object-cover" />
+              {imageUploading && (
+                <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-sm text-ink-500">מעלה תמונה…</div>
+              )}
+              {!imageUploading && (
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 left-2 h-7 w-7 rounded-full bg-ink/60 hover:bg-ink text-white flex items-center justify-center"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <label className={`flex items-center gap-2 text-sm text-ink-500 hover:text-ink cursor-pointer transition border border-dashed border-ink-200 rounded-xl px-4 py-3 hover:border-accent/50 hover:bg-accent-50/30 ${imageUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <ImagePlus className="h-4 w-4 shrink-0" />
+              הוספת תמונה לפוסט (עד 5MB)
+              <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} disabled={imageUploading} />
+            </label>
+          )}
+
           <div className="flex items-center gap-2 text-sm text-ink-500 bg-accent-50 rounded-xl p-3">
             <ShieldCheck className="h-4 w-4 text-accent shrink-0" />
             הפוסט יופיע עם תגית <span className="font-bold text-accent">הנהלה</span> בשם <span className="font-semibold">{adminName}</span>
           </div>
-          <button type="submit" disabled={loading || !content.trim() || !orgId} className="btn-primary w-full">
+          <button type="submit" disabled={loading || imageUploading || !content.trim() || !orgId} className="btn-primary w-full">
             {loading ? 'מפרסם…' : 'פרסום הפוסט'}
           </button>
         </form>
