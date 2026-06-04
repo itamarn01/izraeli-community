@@ -11,7 +11,7 @@ import { timeAgo, formatDate } from '../../utils/format.js';
 
 const PAGE_SIZE = 25;
 
-const GEDUDIM = ['משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול'];
+const GEDUDIM = ['משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול', 'מטה'];
 const EMPLOY_OPTIONS = [
   { v: 'employee', label: 'שכיר/ה' }, { v: 'self_employed', label: 'עצמאי/ת' },
   { v: 'combined', label: 'משולב' }, { v: 'not_working', label: 'לא עובד/ת' },
@@ -515,6 +515,8 @@ function UserProfileModal({ user: initialUser, onClose }) {
               <InfoRow icon={Phone} label="טלפון" value={p.phone} />
               <InfoRow icon={MapPin} label="עיר" value={p.address?.city} />
               <InfoRow icon={MapPin} label="רחוב" value={p.address?.street} />
+              <InfoRow icon={MapPin} label="מספר בית" value={p.address?.houseNumber} />
+              <InfoRow icon={MapPin} label="דירה" value={p.address?.apartment} />
               <InfoRow icon={Calendar} label="תאריך לידה" value={p.dateOfBirth ? `${formatDate(p.dateOfBirth)}${age ? ` (גיל ${age})` : ''}` : null} />
             </div>
           </div>
@@ -529,6 +531,9 @@ function UserProfileModal({ user: initialUser, onClose }) {
               <InfoRow icon={Briefcase} label="תעסוקה" value={EMPLOY_HE[p.employmentStatus]} />
               {p.studentLevel && (
                 <InfoRow icon={GraduationCap} label="תואר אקדמי" value={STUDENT_HE[p.studentLevel]} />
+              )}
+              {(p.employmentStatus === 'self_employed' || p.employmentStatus === 'combined') && p.selfEmployedBusiness && (
+                <InfoRow icon={Briefcase} label="שם עסק / תחום" value={p.selfEmployedBusiness} />
               )}
             </div>
           </div>

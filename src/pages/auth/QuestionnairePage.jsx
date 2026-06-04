@@ -10,13 +10,14 @@ const initial = {
   firstName: '',
   lastName: '',
   phone: '',
-  address: { city: '', street: '' },
+  address: { city: '', street: '', houseNumber: '', apartment: '' },
   dateOfBirth: '',
   gender: '',
   maritalStatus: '',
   gedud: '',
   employmentStatus: '',
   studentLevel: '',
+  selfEmployedBusiness: '',
   children: [],
 };
 
@@ -25,7 +26,8 @@ const GEDUDIM = [
   'אבישי',
   'הכרמל',
   'אבשלום',
-  'חרב שאול'
+  'חרב שאול',
+  'מטה',
 ];
 
 const GENDERS = [
@@ -117,6 +119,7 @@ export default function QuestionnairePage() {
         ...form,
         children: form.children.filter((c) => c.name && c.dateOfBirth),
         studentLevel: form.employmentStatus === 'student' ? form.studentLevel : undefined,
+        selfEmployedBusiness: (form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') ? form.selfEmployedBusiness : undefined,
       };
       await submitQuestionnaire(payload);
       toast.success('השאלון נשמר — ברוך הבא לקהילה!');
@@ -176,12 +179,20 @@ export default function QuestionnairePage() {
           <SectionTitle icon={MapPin} title="כתובת" />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">עיר</label>
+              <label className="label">עיר *</label>
               <input className="input" value={form.address.city} onChange={(e) => setAddr('city', e.target.value)} required />
             </div>
             <div>
-              <label className="label">רחוב</label>
+              <label className="label">רחוב *</label>
               <input className="input" value={form.address.street} onChange={(e) => setAddr('street', e.target.value)} required />
+            </div>
+            <div>
+              <label className="label">מספר בית</label>
+              <input className="input" value={form.address.houseNumber} onChange={(e) => setAddr('houseNumber', e.target.value)} placeholder="לא חובה" />
+            </div>
+            <div>
+              <label className="label">דירה</label>
+              <input className="input" value={form.address.apartment} onChange={(e) => setAddr('apartment', e.target.value)} placeholder="לא חובה" />
             </div>
           </div>
         </section>
@@ -223,6 +234,24 @@ export default function QuestionnairePage() {
           </div>
 
           <AnimatePresence>
+            {(form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4">
+                  <label className="label">שם העסק / תחום עיסוק</label>
+                  <input
+                    className="input"
+                    placeholder="לדוגמה: עורך דין עצמאי, קפה הכהן..."
+                    value={form.selfEmployedBusiness}
+                    onChange={(e) => set('selfEmployedBusiness', e.target.value)}
+                  />
+                </div>
+              </motion.div>
+            )}
             {form.employmentStatus === 'student' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}

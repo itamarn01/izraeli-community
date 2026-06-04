@@ -41,7 +41,7 @@ const STUDENT_LEVELS = [
   { v: 'other', label: 'אחר' },
 ];
 const GEDUDIM = [
-  'משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול'
+  'משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול', 'מטה',
 ];
 
 function Pill({ active, onClick, children }) {
@@ -92,13 +92,19 @@ export default function ProfilePage() {
     firstName: pf.firstName || '',
     lastName: pf.lastName || '',
     phone: pf.phone || '',
-    address: { city: pf.address?.city || '', street: pf.address?.street || '' },
+    address: {
+      city: pf.address?.city || '',
+      street: pf.address?.street || '',
+      houseNumber: pf.address?.houseNumber || '',
+      apartment: pf.address?.apartment || '',
+    },
     dateOfBirth: pf.dateOfBirth ? new Date(pf.dateOfBirth).toISOString().slice(0, 10) : '',
     gender: pf.gender || '',
     maritalStatus: pf.maritalStatus || '',
     gedud: pf.gedud || '',
     employmentStatus: pf.employmentStatus || '',
     studentLevel: pf.studentLevel || '',
+    selfEmployedBusiness: pf.selfEmployedBusiness || '',
     children: pf.children?.map((c) => ({
       name: c.name,
       dateOfBirth: c.dateOfBirth ? new Date(c.dateOfBirth).toISOString().slice(0, 10) : '',
@@ -115,6 +121,7 @@ export default function ProfilePage() {
       const payload = {
         ...form,
         studentLevel: form.employmentStatus === 'student' ? form.studentLevel || undefined : null,
+        selfEmployedBusiness: (form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') ? form.selfEmployedBusiness : '',
       };
       await api.patch('/users/me/profile', payload);
       await refresh();
@@ -364,12 +371,22 @@ export default function ProfilePage() {
               <EditField label="רחוב" icon={MapPin}>
                 <input className="input" value={form.address.street} onChange={(e) => setAddr('street', e.target.value)} />
               </EditField>
+              <EditField label="מספר בית" icon={MapPin}>
+                <input className="input" value={form.address.houseNumber} onChange={(e) => setAddr('houseNumber', e.target.value)} placeholder="לא חובה" />
+              </EditField>
+              <EditField label="דירה" icon={MapPin}>
+                <input className="input" value={form.address.apartment} onChange={(e) => setAddr('apartment', e.target.value)} placeholder="לא חובה" />
+              </EditField>
             </>
           ) : (
             <>
               <Field icon={Phone} label="טלפון" value={p.phone} />
               <Field icon={Calendar} label="תאריך לידה" value={formatDate(p.dateOfBirth)} />
-              <Field icon={MapPin} label="כתובת" value={p.address?.city && p.address?.street ? `${p.address.street}, ${p.address.city}` : ''} />
+              <Field icon={MapPin} label="כתובת" value={
+                p.address?.city && p.address?.street
+                  ? [p.address.street, p.address.houseNumber, p.address.apartment ? `דירה ${p.address.apartment}` : null, p.address.city].filter(Boolean).join(' ')
+                  : ''
+              } />
               <Field icon={ShieldCheck} label="מגדר" value={GENDER_LABELS[p.gender]} />
               <Field icon={Users} label="גדוד" value={p.gedud} />
             </>
@@ -403,6 +420,24 @@ export default function ProfilePage() {
               </div>
             </div>
             <AnimatePresence>
+              {(form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-1">
+                    <label className="label">שם העסק / תחום עיסוק</label>
+                    <input
+                      className="input"
+                      placeholder="לדוגמה: עורך דין עצמאי, קפה הכהן..."
+                      value={form.selfEmployedBusiness}
+                      onChange={(e) => set('selfEmployedBusiness', e.target.value)}
+                    />
+                  </div>
+                </motion.div>
+              )}
               {form.employmentStatus === 'student' && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -429,7 +464,9 @@ export default function ProfilePage() {
             <Field icon={Briefcase} label="תעסוקה" value={
               p.employmentStatus === 'student' && p.studentLevel
                 ? `${EMPLOYMENT_LABELS[p.employmentStatus]} — ${STUDENT_LEVEL_LABELS[p.studentLevel]}`
-                : EMPLOYMENT_LABELS[p.employmentStatus]
+                : (p.employmentStatus === 'self_employed' || p.employmentStatus === 'combined') && p.selfEmployedBusiness
+                  ? `${EMPLOYMENT_LABELS[p.employmentStatus]} — ${p.selfEmployedBusiness}`
+                  : EMPLOYMENT_LABELS[p.employmentStatus]
             } />
           </div>
         )}
