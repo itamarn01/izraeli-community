@@ -24,7 +24,7 @@ import Logo from '../common/Logo.jsx';
 const NAV = [
   { to: '/app', label: 'דשבורד', icon: LayoutDashboard, end: true },
   { to: '/app/benefits', label: 'מועדון הטבות', icon: Gift },
-  { to: '/app/jobs', label: 'דרושים', icon: Briefcase },
+  { to: '/app/jobs', label: 'מתחברים 186', icon: Briefcase },
   { to: '/app/feed', label: 'מדברים 186', icon: MessagesSquare },
   { to: '/app/profile', label: 'הפרופיל שלי', icon: UserCircle2 },
 ];
@@ -187,7 +187,13 @@ function SidebarContent({ onNavigate }) {
           </NavLink>
         ))}
       </nav>
-      <div className="px-3 py-2 border-t border-white/10">
+      <div className="px-3 py-2 border-t border-white/10 space-y-0.5">
+        <a
+          href="mailto:community.izraeli@gmail.com"
+          className="block text-center text-[11px] text-white/50 hover:text-white/80 py-1 transition"
+        >
+          נתקלתם בבעיה? צרו קשר
+        </a>
         <a
           href="/accessibility-statement"
           className="block text-center text-[11px] text-white/40 hover:text-white/70 py-1 transition"

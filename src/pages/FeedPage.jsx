@@ -42,6 +42,8 @@ export default function FeedPage() {
       const { data } = await api.get(`/posts?page=${p}&limit=${PAGE_SIZE}`);
       setPosts((prev) => replace ? data.posts : [...prev, ...data.posts]);
       setHasMore(data.hasMore);
+    } catch {
+      setHasMore(false);
     } finally {
       setLoading(false);
       setLoadingMore(false);

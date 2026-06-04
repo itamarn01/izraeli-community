@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, MapPin, Briefcase, Building2, Send, EyeOff, Plus, X, Upload, ImagePlus,
-  Globe, Facebook, Instagram, Phone, Pencil, Trash2, Users, FileText, ChevronDown,
+  Globe, Facebook, Instagram, Phone, Linkedin, Pencil, Trash2, Users, FileText, ChevronDown,
 } from 'lucide-react';
 import api from '../api/client';
 import { SkeletonList } from '../components/skeletons/Skeletons.jsx';
@@ -43,6 +43,8 @@ export default function JobsPage() {
       const { data } = await api.get(`/jobs?${params}`);
       setJobs((prev) => replace ? data.jobs : [...prev, ...data.jobs]);
       setHasMore(data.hasMore);
+    } catch {
+      setHasMore(false);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -106,7 +108,7 @@ export default function JobsPage() {
     <div className="space-y-6">
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-ink">לוח דרושים</h1>
+          <h1 className="text-2xl font-bold text-ink">מתחברים 186 - לוח דרושים</h1>
           <p className="text-sm text-ink-400 mt-1">משרות מחברי הקהילה — עם אפשרות הגשה אנונימית</p>
         </div>
         <button onClick={() => setShowForm(true)} className="btn-primary">
@@ -273,9 +275,9 @@ function JobCard({ job, onApply, onEdit, onDelete, currentUserId, highlight }) {
                     <Phone className="h-3 w-3 text-green-500" />וואטסאפ
                   </a>
                 )}
-                {job.socialMedia?.tiktok && (
-                  <a href={job.socialMedia.tiktok} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
-                    <Globe className="h-3 w-3" />טיקטוק
+                {job.socialMedia?.linkedin && (
+                  <a href={job.socialMedia.linkedin} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="chip hover:bg-ink-100 transition">
+                    <Linkedin className="h-3 w-3 text-blue-700" />לינקדאין
                   </a>
                 )}
               </div>
@@ -398,7 +400,7 @@ function JobForm({ initial, onDone }) {
       facebook: initial?.socialMedia?.facebook || '',
       instagram: initial?.socialMedia?.instagram || '',
       whatsapp: initial?.socialMedia?.whatsapp || '',
-      tiktok: initial?.socialMedia?.tiktok || '',
+      linkedin: initial?.socialMedia?.linkedin || '',
     },
   });
   const [loading, setLoading] = useState(false);
@@ -507,8 +509,8 @@ function JobForm({ initial, onDone }) {
             <input dir="ltr" className="input pr-9" placeholder="וואטסאפ (מספר)" value={form.socialMedia.whatsapp} onChange={(e) => setSocial('whatsapp', e.target.value)} />
           </div>
           <div className="relative">
-            <Globe className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
-            <input dir="ltr" className="input pr-9" placeholder="טיקטוק" value={form.socialMedia.tiktok} onChange={(e) => setSocial('tiktok', e.target.value)} />
+            <Linkedin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-700" />
+            <input dir="ltr" className="input pr-9" placeholder="לינקדאין" value={form.socialMedia.linkedin} onChange={(e) => setSocial('linkedin', e.target.value)} />
           </div>
         </div>
       </div>

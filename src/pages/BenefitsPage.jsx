@@ -40,6 +40,8 @@ export default function BenefitsPage() {
       const { data } = await api.get(`/benefits?${params}`);
       setBenefits((prev) => replace ? data.benefits : [...prev, ...data.benefits]);
       setHasMore(data.hasMore);
+    } catch {
+      setHasMore(false);
     } finally {
       setLoading(false);
       setLoadingMore(false);
