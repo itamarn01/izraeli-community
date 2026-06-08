@@ -266,8 +266,8 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
       <p className="text-ink-700 whitespace-pre-wrap leading-relaxed">{post.content}</p>
 
       {post.imageUrl && (
-        <div className="mt-3 rounded-xl overflow-hidden border border-ink-100">
-          <img src={post.imageUrl} alt="" className="w-full max-h-96 object-cover" />
+        <div className="mt-3 rounded-xl overflow-hidden border border-ink-100 aspect-square">
+          <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
         </div>
       )}
 

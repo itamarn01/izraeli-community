@@ -187,18 +187,21 @@ function SidebarContent({ onNavigate }) {
           </NavLink>
         ))}
       </nav>
-      <div className="px-3 py-2 border-t border-white/10 space-y-0.5">
-        <a
-          href="mailto:community.izraeli@gmail.com"
-          className="block text-center text-[11px] text-white/50 hover:text-white/80 py-1 transition"
-        >
-          נתקלתם בבעיה? צרו קשר
-        </a>
+      <div className="px-3 py-2 border-t border-white/10 space-y-0.5 text-center">
+       
         <a
           href="/accessibility-statement"
-          className="block text-center text-[11px] text-white/40 hover:text-white/70 py-1 transition"
+          className="block text-[10px] text-white/30 hover:text-white/60 py-0.5 transition"
         >
           הצהרת נגישות
+        </a>
+         <p className="text-[10px] text-white/35">נתקלתם בבעיה? צרו קשר:</p>
+        <a
+          href="mailto:community.izraeli@gmail.com"
+          className="block text-[10px] text-white/50 hover:text-white/80 transition"
+          dir="ltr"
+        >
+          community.izraeli@gmail.com
         </a>
       </div>
       <div className="p-3 border-t border-white/10">

@@ -233,7 +233,7 @@ function JobCard({ job, onApply, onEdit, onDelete, currentUserId, highlight }) {
       className={`card overflow-hidden hover:shadow-soft transition ${highlight ? 'ring-2 ring-accent' : ''}`}
     >
       {job.imageUrl && (
-        <div className="h-40 overflow-hidden">
+        <div className="h-24 overflow-hidden">
           <img src={job.imageUrl} alt={job.title} className="w-full h-full object-cover" />
         </div>
       )}

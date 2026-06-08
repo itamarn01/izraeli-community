@@ -109,7 +109,6 @@ export default function BenefitsPage() {
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-ink">מועדון הטבות</h1>
-          <p className="text-sm text-ink-400 mt-1">לחצו על הטבה לפרטים נוספים ומימוש</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowSuggest(true)} className="btn-outline">
@@ -124,6 +123,21 @@ export default function BenefitsPage() {
           )}
         </div>
       </header>
+
+      <div className="rounded-2xl border border-accent/20 bg-gradient-to-bl from-accent/5 to-olive/5 p-5 space-y-3">
+        <p className="text-sm font-semibold text-ink leading-relaxed">
+          הטבות ייחודיות לחברי חטיבת יזרעאלי ומשפחותיהם — ישירות מעסקים שבחרו לתת יחס מיוחד לקהילה שלנו.
+        </p>
+        <p className="text-sm text-ink-600 leading-relaxed">
+          כאן תמצאו הנחות, מבצעים ושירותים מועדפים ממגוון תחומים: מסעדות, בריאות, ספורט, קניות ועוד. כל הטבה עברה בדיקה ואושרה על ידי ההנהלה לפני הפרסום.
+        </p>
+        <p className="text-sm text-ink-600 leading-relaxed">
+          מכירים עסק שיכול להציע הטבה לקהילה? לחצו על "הצעת הטבה" ונבדוק יחד.
+        </p>
+        <p className="text-xs text-ink-400 font-medium border-t border-ink-100 pt-3">
+          לחצו על כל הטבה לפרטים נוספים ואפשרויות מימוש.
+        </p>
+      </div>
 
       <div className="card p-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
