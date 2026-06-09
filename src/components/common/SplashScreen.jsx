@@ -19,15 +19,6 @@ export default function SplashScreen({ message = 'טוען את הקהילה…'
         />
       </motion.div>
 
-      <motion.h1
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="mt-6 brand-display text-3xl text-ink"
-      >
-        חברותא
-      </motion.h1>
-
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

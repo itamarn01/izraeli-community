@@ -11,6 +11,15 @@ import { useImageUpload } from '../../hooks/useImageUpload.js';
 
 const CATEGORIES = ['כללי', 'מסעדות', 'בריאות', 'ספורט', 'בידור', 'קניות', 'חינוך', 'נסיעות', 'טכנולוגיה', 'אחר'];
 const PAGE_SIZE = 25;
+const GEDUD_OPTIONS = ['', 'משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול', 'מטה', 'שותף לדרך'];
+const GEDUD_IMAGES = {
+  'משמר העמקים': '/mishmar_haamakim.png',
+  'אבישי': '/avishay.png',
+  'הכרמל': '/carmel.png',
+  'אבשלום': '/avshalom.png',
+  'חרב שאול': '/herev_shaul.png',
+  'מטה': '/mate.png',
+};
 
 export default function AdminBenefitsPage() {
   const [benefits, setBenefits] = useState([]);
@@ -130,6 +139,14 @@ export default function AdminBenefitsPage() {
                 {b.businessName && <div className="text-xs font-semibold text-muted-700 mb-1">{b.businessName}</div>}
                 <h3 className="font-bold text-ink line-clamp-1">{b.title}</h3>
                 <p className="text-sm text-ink-500 line-clamp-2 mt-1">{b.description}</p>
+                {b.gedud && (
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {GEDUD_IMAGES[b.gedud] && (
+                      <img src={GEDUD_IMAGES[b.gedud]} alt={b.gedud} className="h-5 w-5 object-contain shrink-0" />
+                    )}
+                    <span className="text-xs font-medium text-ink-500">{b.gedud}</span>
+                  </div>
+                )}
                 <div className="mt-3 flex items-center gap-2 text-xs text-ink-400 flex-wrap">
                   <span className="chip"><Tag className="h-3 w-3" />{b.category || 'כללי'}</span>
                   {b.organization?.name && <span className="chip text-[10px]">{b.organization.name}</span>}
@@ -211,6 +228,7 @@ function BenefitFormModal({ initial, orgs, onClose, onSaved }) {
     redemptionLink: initial?.redemptionLink || '',
     validUntil: initial?.validUntil ? new Date(initial.validUntil).toISOString().slice(0, 10) : '',
     organization: initial?.organization?._id || initial?.organization || (orgs[0]?._id || ''),
+    gedud: initial?.gedud || '',
   });
   const [imageUrl, setImageUrl] = useState(initial?.imageUrl || '');
   const [loading, setLoading] = useState(false);
@@ -326,6 +344,18 @@ function BenefitFormModal({ initial, orgs, onClose, onSaved }) {
           <div>
             <label className="label">תיאור</label>
             <textarea rows={3} className="input" value={form.description} onChange={(e) => set('description', e.target.value)} required />
+          </div>
+
+          {/* Gedud / partner */}
+          <div>
+            <label className="label">שיוך גדוד / שותף לדרך</label>
+            <select className="input" value={form.gedud} onChange={(e) => set('gedud', e.target.value)}>
+              <option value="">ללא שיוך</option>
+              {GEDUD_OPTIONS.filter(Boolean).map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+            {form.gedud && GEDUD_IMAGES[form.gedud] && (
+              <img src={GEDUD_IMAGES[form.gedud]} alt={form.gedud} className="mt-2 h-10 w-10 object-contain rounded-full bg-ink-50 p-1 border border-ink-100" />
+            )}
           </div>
 
           {/* Discount */}

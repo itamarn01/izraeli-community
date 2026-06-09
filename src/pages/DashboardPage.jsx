@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck } from 'lucide-react';
+import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck, Building2 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SkeletonStat, SkeletonGrid, SkeletonList } from '../components/skeletons/Skeletons.jsx';
@@ -72,7 +72,7 @@ export default function DashboardPage() {
               return (
                 <Link key={p._id} to={`/app/feed?post=${p._id}`} className="card p-4 flex gap-3 items-start hover:shadow-soft transition block">
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold shrink-0 ${isAdminPost ? 'bg-accent text-white' : 'bg-muted-100 text-muted-700'}`}>
-                    {isAdminPost ? <ShieldCheck className="h-5 w-5" /> : (p.author?.profile?.firstName?.[0] || '?')}
+                    {isAdminPost ? <Building2 className="h-5 w-5" /> : (p.author?.profile?.firstName?.[0] || '?')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs">
@@ -130,9 +130,9 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <StatCard icon={Gift} label="הטבות פעילות" value={data.benefits.length} hint="במועדון" tone="accent" />
-            <StatCard icon={Briefcase} label="משרות פתוחות" value={data.jobs.length} hint="ממתינות לכם" tone="olive" />
-            <StatCard icon={MessagesSquare} label="פוסטים בקהילה" value={data.posts.length} hint="פעילות ב-7 ימים" tone="muted" />
+            <StatCard icon={Gift} label="הטבות פעילות" value={data.benefits.length} hint="במועדון" tone="accent" to="/app/benefits" />
+            <StatCard icon={Briefcase} label="משרות פתוחות" value={data.jobs.length} hint="ממתינות לכם" tone="olive" to="/app/jobs" />
+            <StatCard icon={MessagesSquare} label="פוסטים בקהילה" value={data.posts.length} hint="פעילות ב-7 ימים" tone="muted" to="/app/feed" />
           </>
         )}
       </div>
@@ -140,14 +140,14 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, hint, tone = 'accent' }) {
+function StatCard({ icon: Icon, label, value, hint, tone = 'accent', to }) {
   const tones = {
     accent: 'bg-accent-50 text-accent-700',
     olive: 'bg-olive-50 text-olive-700',
     muted: 'bg-muted-100 text-muted-700',
   };
-  return (
-    <div className="card p-5">
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
         <div className={`h-11 w-11 rounded-xl flex items-center justify-center ${tones[tone]}`}>
           <Icon className="h-5 w-5" />
@@ -157,7 +157,14 @@ function StatCard({ icon: Icon, label, value, hint, tone = 'accent' }) {
       <div className="mt-3 text-3xl font-bold text-ink">{value}</div>
       <div className="text-sm font-semibold text-ink-700">{label}</div>
       <div className="text-xs text-ink-400 mt-0.5">{hint}</div>
-    </div>
+    </>
+  );
+  return to ? (
+    <Link to={to} className="card p-5 block hover:shadow-soft transition">
+      {inner}
+    </Link>
+  ) : (
+    <div className="card p-5">{inner}</div>
   );
 }
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, MessagesSquare, Gift,
-  LogOut, Menu, ShieldCheck, Send,
+  LogOut, Menu, ShieldCheck, Send, UserCircle2,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
 import Logo from '../common/Logo.jsx';
@@ -15,6 +15,7 @@ const NAV = [
   { to: '/admin/posts', label: 'פיד', icon: MessagesSquare },
   { to: '/admin/benefits', label: 'הטבות', icon: Gift },
   { to: '/admin/benefit-suggestions', label: 'הצעות הטבות', icon: Send },
+  { to: '/admin/profile', label: 'פרופיל', icon: UserCircle2 },
 ];
 
 function SidebarContent({ onNavigate }) {
@@ -51,9 +52,13 @@ function SidebarContent({ onNavigate }) {
       </nav>
       <div className="p-3 border-t border-white/10">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center font-bold text-white">
-            {(admin?.fullName?.[0] || admin?.username?.[0] || '?').toUpperCase()}
-          </div>
+          {admin?.avatarUrl ? (
+            <img src={admin.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center font-bold text-white shrink-0">
+              {(admin?.fullName?.[0] || admin?.username?.[0] || '?').toUpperCase()}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">{admin?.fullName || admin?.username}</div>
             <div className="text-[11px] text-white/50 truncate" dir="ltr">{admin?.email}</div>

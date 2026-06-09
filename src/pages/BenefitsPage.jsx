@@ -15,6 +15,16 @@ import { useImageUpload } from '../hooks/useImageUpload.js';
 const CATEGORIES = ['כללי', 'מסעדות', 'בריאות', 'ספורט', 'בידור', 'קניות', 'חינוך', 'נסיעות', 'טכנולוגיה', 'אחר'];
 const PAGE_SIZE = 12;
 
+const GEDUD_OPTIONS = ['', 'משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול', 'מטה', 'שותף לדרך'];
+const GEDUD_IMAGES = {
+  'משמר העמקים': '/mishmar_haamakim.png',
+  'אבישי': '/avishay.png',
+  'הכרמל': '/carmel.png',
+  'אבשלום': '/avshalom.png',
+  'חרב שאול': '/herev_shaul.png',
+  'מטה': '/mate.png',
+};
+
 export default function BenefitsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -108,7 +118,7 @@ export default function BenefitsPage() {
     <div className="space-y-6">
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-ink">מועדון הטבות</h1>
+          <h1 className="text-2xl font-bold text-ink">נהנים 186</h1>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowSuggest(true)} className="btn-outline">
@@ -126,16 +136,19 @@ export default function BenefitsPage() {
 
       <div className="rounded-2xl border border-accent/20 bg-gradient-to-bl from-accent/5 to-olive/5 p-5 space-y-3">
         <p className="text-sm font-semibold text-ink leading-relaxed">
-          הטבות ייחודיות לחברי חטיבת יזרעאלי ומשפחותיהם — ישירות מעסקים שבחרו לתת יחס מיוחד לקהילה שלנו.
+          מרחב ההטבות של חטיבת יזרעאלי — מקום שמחבר בין חברי הקהילה לבין עסקים שבחרו להיות חלק מהדרך.
         </p>
         <p className="text-sm text-ink-600 leading-relaxed">
-          כאן תמצאו הנחות, מבצעים ושירותים מועדפים ממגוון תחומים: מסעדות, בריאות, ספורט, קניות ועוד. כל הטבה עברה בדיקה ואושרה על ידי ההנהלה לפני הפרסום.
+          כאן תמצאו הטבות, הנחות והצעות מיוחדות מעסקים של חיילי החטיבה ובני משפחותיהם, לצד עסקים וארגונים שמלווים את החטיבה, תומכים בפעילותה ותורמים לקהילה לאורך הדרך.
         </p>
         <p className="text-sm text-ink-600 leading-relaxed">
-          מכירים עסק שיכול להציע הטבה לקהילה? לחצו על "הצעת הטבה" ונבדוק יחד.
+          רבים מהעסקים המשתתפים פועלים באותם יישובים ובאותה גזרה שבה חיים ומשרתים חיילי החטיבה. כך, מעבר להנאה מההטבות עצמן, יש כאן גם הזדמנות לחזק עסקים מקומיים מתוך הקהילה שסביבנו וליצור חיבורים נוספים בין אנשים שחולקים מרחב חיים משותף.
+        </p>
+        <p className="text-sm text-ink-600 leading-relaxed">
+          זו הזדמנות ליהנות מהטבות ייחודיות, להכיר עסקים מתוך הקהילה ולחזק את מי שבוחר להשקיע בחיילי החטיבה ובמשפחותיהם.
         </p>
         <p className="text-xs text-ink-400 font-medium border-t border-ink-100 pt-3">
-          לחצו על כל הטבה לפרטים נוספים ואפשרויות מימוש.
+          נתקלתם בהטבה מעניינת? מכירים עסק שיכול לתרום לקהילה ולהצטרף? לחצו על "הצעת הטבה".
         </p>
       </div>
 
@@ -192,7 +205,15 @@ export default function BenefitsPage() {
                   {b.businessName && <div className="text-xs text-muted-700 font-semibold mb-1">{b.businessName}</div>}
                   <h3 className="font-bold text-ink leading-snug line-clamp-2">{b.title}</h3>
                   <p className="mt-1.5 text-sm text-ink-500 line-clamp-2">{b.description}</p>
-                  <div className="mt-4 flex items-center gap-2 text-xs text-ink-400">
+                  {b.gedud && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {GEDUD_IMAGES[b.gedud] && (
+                        <img src={GEDUD_IMAGES[b.gedud]} alt={b.gedud} className="h-5 w-5 object-contain shrink-0" />
+                      )}
+                      <span className="text-xs font-medium text-ink-500">{b.gedud}</span>
+                    </div>
+                  )}
+                  <div className="mt-3 flex items-center gap-2 text-xs text-ink-400">
                     <Tag className="h-3.5 w-3.5" />
                     {b.category || 'כללי'}
                     {b.validUntil && <span className="mr-auto">עד {formatDate(b.validUntil)}</span>}
@@ -284,6 +305,14 @@ function BenefitModal({ benefit: b, onClose }) {
             {b.businessName && <div className="text-sm font-semibold text-muted-700 mb-1">{b.businessName}</div>}
             <h2 className="text-xl font-bold text-ink">{b.title}</h2>
             <p className="text-ink-600 leading-relaxed mt-2">{b.description}</p>
+            {b.gedud && (
+              <div className="flex items-center gap-2 mt-3">
+                {GEDUD_IMAGES[b.gedud] ? (
+                  <img src={GEDUD_IMAGES[b.gedud]} alt={b.gedud} className="h-9 w-9 object-contain" />
+                ) : null}
+                <span className="text-sm font-semibold text-ink-600">{b.gedud}</span>
+              </div>
+            )}
           </div>
 
           {/* Price comparison */}
@@ -412,7 +441,7 @@ function BenefitFormModal({ onClose, onCreated }) {
     discountPercent: '', originalPrice: '', discountedPrice: '',
     whatYouGet: '', howToRedeem: '',
     redemptionCode: '', redemptionLink: '',
-    validUntil: '', imageUrl: '',
+    validUntil: '', imageUrl: '', gedud: '',
   });
   const [loading, setLoading] = useState(false);
   const { upload, uploading, preview, clear } = useImageUpload();
@@ -516,6 +545,15 @@ function BenefitFormModal({ onClose, onCreated }) {
           <div>
             <label className="label">תיאור ההטבה</label>
             <textarea rows={3} className="input" value={form.description} onChange={(e) => set('description', e.target.value)} required />
+          </div>
+
+          {/* Gedud */}
+          <div>
+            <label className="label">שיוך גדוד / שותף</label>
+            <select className="input" value={form.gedud} onChange={(e) => set('gedud', e.target.value)}>
+              <option value="">ללא שיוך</option>
+              {GEDUD_OPTIONS.filter(Boolean).map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
           </div>
 
           {/* Discount type */}

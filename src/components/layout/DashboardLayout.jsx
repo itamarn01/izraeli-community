@@ -23,7 +23,7 @@ import Logo from '../common/Logo.jsx';
 
 const NAV = [
   { to: '/app', label: 'דשבורד', icon: LayoutDashboard, end: true },
-  { to: '/app/benefits', label: 'מועדון הטבות', icon: Gift },
+  { to: '/app/benefits', label: 'נהנים 186', icon: Gift },
   { to: '/app/jobs', label: 'מתחברים 186', icon: Briefcase },
   { to: '/app/feed', label: 'מדברים 186', icon: MessagesSquare },
   { to: '/app/profile', label: 'הפרופיל שלי', icon: UserCircle2 },

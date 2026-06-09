@@ -33,6 +33,7 @@ import AdminJobsPage from './pages/admin/AdminJobsPage.jsx';
 import AdminPostsPage from './pages/admin/AdminPostsPage.jsx';
 import AdminBenefitsPage from './pages/admin/AdminBenefitsPage.jsx';
 import AdminBenefitSuggestionsPage from './pages/admin/AdminBenefitSuggestionsPage.jsx';
+import AdminProfilePage from './pages/admin/AdminProfilePage.jsx';
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -134,6 +135,7 @@ export default function App() {
         <Route path="posts" element={<AdminPostsPage />} />
         <Route path="benefits" element={<AdminBenefitsPage />} />
         <Route path="benefit-suggestions" element={<AdminBenefitSuggestionsPage />} />
+        <Route path="profile" element={<AdminProfilePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
