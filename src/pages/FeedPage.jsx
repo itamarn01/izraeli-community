@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageSquare, Send, ImagePlus, X } from 'lucide-react';
+import { Heart, MessageSquare, Send, ImagePlus, X, Building2 } from 'lucide-react';
 import api from '../api/client';
 import { SkeletonList } from '../components/skeletons/Skeletons.jsx';
 import { timeAgo } from '../utils/format.js';
@@ -242,14 +242,20 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
       className={`card p-5 mb-3 transition-shadow ${highlight ? 'ring-2 ring-accent shadow-soft' : ''} ${isAdmin ? 'border-r-4 border-r-accent' : ''}`}
     >
       <header className="flex items-center gap-3 mb-3">
-        {!isAdmin && post.author?.avatarUrl ? (
+        {isAdmin && post.adminAvatarUrl ? (
+          <img src={post.adminAvatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+        ) : isAdmin ? (
+          <div className="h-10 w-10 rounded-full bg-accent text-white flex items-center justify-center shrink-0">
+            <Building2 className="h-5 w-5" />
+          </div>
+        ) : post.author?.avatarUrl ? (
           <img src={post.author.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
         ) : (
           <div
-            className={`h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0 ${isAdmin ? 'bg-accent' : ''}`}
-            style={!isAdmin ? { backgroundColor: getUserColor(post.author?._id) } : {}}
+            className="h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0"
+            style={{ backgroundColor: getUserColor(post.author?._id) }}
           >
-            {isAdmin ? '🛡' : (post.author?.profile?.firstName?.[0] || authorName[0] || '?').toUpperCase()}
+            {(post.author?.profile?.firstName?.[0] || authorName[0] || '?').toUpperCase()}
           </div>
         )}
         <div>
@@ -297,14 +303,20 @@ function PostCard({ post, currentUserId, onLike, onComment, highlight }) {
               : ([c.user?.profile?.firstName, c.user?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה');
             return (
               <div key={c._id} className="flex gap-2">
-                {!isAdminC && c.user?.avatarUrl ? (
+                {isAdminC && c.adminAvatarUrl ? (
+                  <img src={c.adminAvatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+                ) : isAdminC ? (
+                  <div className="h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center shrink-0">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                ) : c.user?.avatarUrl ? (
                   <img src={c.user.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
                 ) : (
                   <div
-                    className={`h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 ${isAdminC ? 'bg-accent' : ''}`}
-                    style={!isAdminC ? { backgroundColor: getUserColor(c.user?._id) } : {}}
+                    className="h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ backgroundColor: getUserColor(c.user?._id) }}
                   >
-                    {isAdminC ? '🛡' : cName[0]?.toUpperCase() || '?'}
+                    {cName[0]?.toUpperCase() || '?'}
                   </div>
                 )}
                 <div className={`flex-1 rounded-xl px-3 py-2 ${isAdminC ? 'bg-accent-50 border border-accent/20' : 'bg-ink-50'}`}>
