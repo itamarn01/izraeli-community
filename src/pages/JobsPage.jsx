@@ -211,6 +211,8 @@ function JobCard({ job, onApply, onEdit, onDelete, currentUserId, highlight }) {
   const [showApps, setShowApps] = useState(false);
   const [apps, setApps] = useState(null);
   const [appsLoading, setAppsLoading] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const isLongDesc = job.description && job.description.length > 120;
 
   const loadApplications = async () => {
     if (apps !== null) { setShowApps((s) => !s); return; }
@@ -247,7 +249,17 @@ function JobCard({ job, onApply, onEdit, onDelete, currentUserId, highlight }) {
               <span>{timeAgo(job.createdAt)}</span>
             </div>
             <h3 className="mt-1 text-lg font-bold text-ink">{job.title}</h3>
-            <p className="mt-1.5 text-sm text-ink-500 line-clamp-2">{job.description}</p>
+            <p className={`mt-1.5 text-sm text-ink-500 whitespace-pre-wrap ${!descExpanded && isLongDesc ? 'line-clamp-2' : ''}`}>
+              {job.description}
+            </p>
+            {isLongDesc && (
+              <button
+                onClick={() => setDescExpanded((s) => !s)}
+                className="mt-1 text-xs font-semibold text-accent hover:underline"
+              >
+                {descExpanded ? 'הצג פחות ▲' : 'קרא עוד ▼'}
+              </button>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="chip"><Briefcase className="h-3 w-3" />{JOB_TYPE_LABELS[job.type] || job.type}</span>
               {job.location && <span className="chip"><MapPin className="h-3 w-3" />{job.location}</span>}
