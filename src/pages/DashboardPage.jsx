@@ -6,6 +6,15 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { SkeletonStat, SkeletonGrid, SkeletonList } from '../components/skeletons/Skeletons.jsx';
 import { timeAgo } from '../utils/format.js';
 
+const GEDUD_IMAGES = {
+  'משמר העמקים': '/mishmar_haamakim.png',
+  'אבישי': '/avishay.png',
+  'הכרמל': '/carmel.png',
+  'אבשלום': '/avshalom.png',
+  'חרב שאול': '/herev_shaul.png',
+  'מטה': '/mate.png',
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -71,9 +80,17 @@ export default function DashboardPage() {
                 : ([p.author?.profile?.firstName, p.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה');
               return (
                 <Link key={p._id} to={`/app/feed?post=${p._id}`} className="card p-4 flex gap-3 items-start hover:shadow-soft transition block">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold shrink-0 ${isAdminPost ? 'bg-accent text-white' : 'bg-muted-100 text-muted-700'}`}>
-                    {isAdminPost ? <Building2 className="h-5 w-5" /> : (p.author?.profile?.firstName?.[0] || '?')}
-                  </div>
+                  {isAdminPost && p.adminAvatarUrl ? (
+                    <img src={p.adminAvatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                  ) : isAdminPost ? (
+                    <div className="h-10 w-10 rounded-full bg-accent text-white flex items-center justify-center shrink-0">
+                      <Building2 className="h-5 w-5" />
+                    </div>
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-muted-100 text-muted-700 flex items-center justify-center font-bold shrink-0">
+                      {p.author?.profile?.firstName?.[0] || '?'}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs">
                       <span className="font-semibold text-ink">{authorName}</span>
@@ -114,6 +131,14 @@ export default function DashboardPage() {
                   {b.businessName && <div className="text-xs text-muted-700 font-semibold mb-1">{b.businessName}</div>}
                   <h3 className="font-bold text-ink line-clamp-1">{b.title}</h3>
                   <p className="mt-1 text-sm text-ink-500 line-clamp-2">{b.description}</p>
+                  {b.gedud && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {GEDUD_IMAGES[b.gedud] && (
+                        <img src={GEDUD_IMAGES[b.gedud]} alt={b.gedud} className="h-4 w-4 object-contain shrink-0" />
+                      )}
+                      <span className="text-xs font-medium text-ink-500">{b.gedud}</span>
+                    </div>
+                  )}
                 </div>
               </Link>
             ))}
