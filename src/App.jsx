@@ -24,6 +24,7 @@ import PrivacyPage from './pages/PrivacyPage.jsx';
 import AccessibilityStatementPage from './pages/AccessibilityStatementPage.jsx';
 
 import AdminLoginPage from './pages/admin/AdminLoginPage.jsx';
+import AdminForgotPasswordPage from './pages/admin/AdminForgotPasswordPage.jsx';
 import AdminVerifyPage from './pages/admin/AdminVerifyPage.jsx';
 import AdminSetupPage from './pages/admin/AdminSetupPage.jsx';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
@@ -118,6 +119,7 @@ export default function App() {
 
       {/* Admin panel — separate auth */}
       <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
       <Route path="/admin/verify" element={<AdminVerifyPage />} />
       <Route path="/admin/setup" element={<AdminSetupPage />} />
       <Route

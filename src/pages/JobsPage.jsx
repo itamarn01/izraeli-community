@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, MapPin, Briefcase, Building2, Send, EyeOff, Plus, X, Upload, ImagePlus,
+  Search, MapPin, Briefcase, Building2, Send, Plus, X, Upload, ImagePlus,
   Globe, Facebook, Instagram, Phone, Linkedin, Pencil, Trash2, Users, FileText, ChevronDown,
 } from 'lucide-react';
 import api from '../api/client';
@@ -109,7 +109,7 @@ export default function JobsPage() {
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-ink">מתחברים 186 - לוח דרושים</h1>
-          <p className="text-sm text-ink-400 mt-1">משרות מחברי הקהילה — עם אפשרות הגשה אנונימית</p>
+          <p className="text-sm text-ink-400 mt-1">משרות מחברי הקהילה — נדרש קורות חיים לפני הגשת מועמדות</p>
         </div>
         <button onClick={() => setShowForm(true)} className="btn-primary">
           <Plus className="h-4 w-4" />
@@ -535,13 +535,18 @@ function JobForm({ initial, onDone }) {
 
 function ApplyForm({ job, onDone }) {
   const { user } = useAuth();
-  const [isAnonymous, setAnon] = useState(false);
   const [message, setMessage] = useState('');
   const [cvFile, setCvFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const hasCv = !!user?.cvUrl || !!cvFile;
+
   const submit = async (e) => {
     e.preventDefault();
+    if (!hasCv) {
+      toast.error('יש לצרף קורות חיים לפני שליחת מועמדות');
+      return;
+    }
     setLoading(true);
     try {
       if (cvFile) {
@@ -549,7 +554,7 @@ function ApplyForm({ job, onDone }) {
         fd.append('cv', cvFile);
         await api.post('/users/me/cv', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
-      await api.post(`/jobs/${job._id}/apply`, { isAnonymous, message });
+      await api.post(`/jobs/${job._id}/apply`, { message });
       toast.success('המועמדות נשלחה בהצלחה');
       onDone();
     } catch (err) {
@@ -561,36 +566,29 @@ function ApplyForm({ job, onDone }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <label className="flex items-start gap-3 rounded-xl border border-ink-200 p-3 cursor-pointer hover:bg-ink-50">
-        <input type="checkbox" checked={isAnonymous} onChange={(e) => setAnon(e.target.checked)} className="mt-1" />
-        <div>
-          <div className="font-semibold text-ink flex items-center gap-1.5">
-            <EyeOff className="h-4 w-4 text-accent" />
-            הגשה אנונימית
-          </div>
-          <div className="text-xs text-ink-500 mt-0.5">
-            פרטיך האישיים יוסתרו מהמעסיק. רק קורות החיים והמסר יישלחו.
-          </div>
-        </div>
-      </label>
-
       <div>
-        <label className="label">קורות חיים (PDF, עד 5MB)</label>
-        <label className="flex items-center gap-3 rounded-xl border border-dashed border-ink-200 p-4 cursor-pointer hover:bg-ink-50">
-          <Upload className="h-5 w-5 text-ink-400" />
-          <span className="text-sm text-ink-500">
-            {cvFile ? cvFile.name : user?.cvUrl ? 'יש קובץ קיים — לחצו להחלפה' : 'בחירת קובץ PDF'}
+        <label className="label">
+          קורות חיים (PDF, עד 5MB)
+          <span className="text-accent mr-1">*</span>
+        </label>
+        <label className={`flex items-center gap-3 rounded-xl border p-4 cursor-pointer hover:bg-ink-50 transition ${hasCv ? 'border-olive-300 bg-olive-50' : 'border-dashed border-ink-200'}`}>
+          <Upload className={`h-5 w-5 shrink-0 ${hasCv ? 'text-olive-600' : 'text-ink-400'}`} />
+          <span className={`text-sm flex-1 ${hasCv ? 'text-olive-700 font-medium' : 'text-ink-500'}`}>
+            {cvFile ? cvFile.name : user?.cvUrl ? 'קורות חיים קיימים — לחצו להחלפה' : 'בחירת קובץ PDF'}
           </span>
           <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
         </label>
+        {!hasCv && (
+          <p className="text-xs text-accent mt-1">נדרש קורות חיים לשליחת מועמדות. ניתן להעלות גם מהפרופיל האישי.</p>
+        )}
       </div>
 
       <div>
-        <label className="label">הודעה למעסיק</label>
+        <label className="label">הודעה למעסיק (אופציונלי)</label>
         <textarea rows={4} className="input" value={message} onChange={(e) => setMessage(e.target.value)} />
       </div>
 
-      <button type="submit" className="btn-primary w-full" disabled={loading}>
+      <button type="submit" className="btn-primary w-full" disabled={loading || !hasCv}>
         {loading ? 'שולח…' : 'שליחת מועמדות'}
       </button>
     </form>

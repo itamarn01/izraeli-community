@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/client';
+import PasswordInput from '../components/common/PasswordInput.jsx';
 import {
   GENDER_LABELS, MARITAL_LABELS, EMPLOYMENT_LABELS, STUDENT_LEVEL_LABELS, formatDate,
 } from '../utils/format.js';
@@ -616,15 +617,33 @@ export default function ProfilePage() {
               <form onSubmit={changePassword} className="p-5 space-y-4">
                 <div>
                   <label className="label">סיסמה נוכחית</label>
-                  <input type="password" dir="ltr" className="input" value={pwForm.current} onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))} autoFocus />
+                  <PasswordInput
+                    value={pwForm.current}
+                    onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))}
+                    autoComplete="current-password"
+                    required
+                  />
                 </div>
                 <div>
                   <label className="label">סיסמה חדשה</label>
-                  <input type="password" dir="ltr" className="input" value={pwForm.next} onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))} />
+                  <PasswordInput
+                    value={pwForm.next}
+                    onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))}
+                    placeholder="לפחות 8 תווים"
+                    minLength={8}
+                    autoComplete="new-password"
+                    required
+                  />
                 </div>
                 <div>
                   <label className="label">אימות סיסמה חדשה</label>
-                  <input type="password" dir="ltr" className="input" value={pwForm.confirm} onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))} />
+                  <PasswordInput
+                    value={pwForm.confirm}
+                    onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                    placeholder="הזן שוב את הסיסמה"
+                    autoComplete="new-password"
+                    required
+                  />
                 </div>
                 <button type="submit" className="btn-primary w-full" disabled={pwLoading}>
                   {pwLoading ? 'מעדכן…' : 'עדכון סיסמה'}

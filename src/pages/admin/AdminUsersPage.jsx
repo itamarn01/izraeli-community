@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Search, Mail, Trash2, KeyRound, Send, X, ShieldCheck, ShieldOff, Filter,
   ChevronLeft, ChevronRight, Download, Baby, Phone, MapPin, Calendar,
-  Briefcase, Heart, Users, UserX, Clock, GraduationCap,
+  Briefcase, Heart, Users, UserX, Clock, GraduationCap, Cake,
 } from 'lucide-react';
 import adminApi from '../../api/adminClient.js';
 import { timeAgo, formatDate } from '../../utils/format.js';
@@ -51,6 +51,9 @@ export default function AdminUsersPage() {
   const [deletedHasMore, setDeletedHasMore] = useState(false);
   const [deletedTotal, setDeletedTotal] = useState(0);
   const [deletedLoading, setDeletedLoading] = useState(false);
+
+  const [birthdays, setBirthdays] = useState({ thisWeek: [], nextWeek: [] });
+  const [birthdaysLoading, setBirthdaysLoading] = useState(false);
 
   const [q, setQ] = useState('');
   const [filterVerified, setFilterVerified] = useState('all');
@@ -113,7 +116,20 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (tab === 'deleted') fetchDeleted(1);
+    if (tab === 'birthdays') fetchBirthdays();
   }, [tab]);
+
+  const fetchBirthdays = async () => {
+    setBirthdaysLoading(true);
+    try {
+      const { data } = await adminApi.get('/users/birthdays');
+      setBirthdays(data);
+    } catch {
+      toast.error('שגיאה בטעינת יומולדות');
+    } finally {
+      setBirthdaysLoading(false);
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -163,13 +179,19 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-ink">ניהול משתמשים</h1>
           <p className="text-sm text-ink-400 mt-1">
-            {tab === 'active' ? `${total} משתמשים פעילים` : `${deletedTotal} חשבונות מחוקים`}
+            {tab === 'active' ? `${total} משתמשים פעילים` : tab === 'deleted' ? `${deletedTotal} חשבונות מחוקים` : 'יומולדות קרובות — 14 ימים הקרובים'}
           </p>
         </div>
         {tab === 'active' && (
           <button onClick={handleExport} disabled={exporting} className="btn-outline">
             <Download className="h-4 w-4" />
             {exporting ? 'מייצא…' : 'ייצוא לאקסל'}
+          </button>
+        )}
+        {tab === 'birthdays' && (
+          <button onClick={fetchBirthdays} disabled={birthdaysLoading} className="btn-outline">
+            <Cake className="h-4 w-4" />
+            {birthdaysLoading ? 'טוען…' : 'רענון'}
           </button>
         )}
       </header>
@@ -187,6 +209,12 @@ export default function AdminUsersPage() {
           className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === 'deleted' ? 'bg-white text-red-600 shadow-sm' : 'text-ink-400 hover:text-ink'}`}
         >
           <span className="flex items-center gap-2"><UserX className="h-4 w-4" />מחוקים</span>
+        </button>
+        <button
+          onClick={() => setTab('birthdays')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === 'birthdays' ? 'bg-white text-accent shadow-sm' : 'text-ink-400 hover:text-ink'}`}
+        >
+          <span className="flex items-center gap-2"><Cake className="h-4 w-4" />ימי הולדת</span>
         </button>
       </div>
 
@@ -241,6 +269,10 @@ export default function AdminUsersPage() {
             </div>
           )}
         </>
+      )}
+
+      {tab === 'birthdays' && (
+        <BirthdaysTab data={birthdays} loading={birthdaysLoading} />
       )}
 
       {tab === 'active' && <><div className="card p-4 space-y-3">
@@ -393,6 +425,81 @@ export default function AdminUsersPage() {
           <ResetPasswordModal user={actionUser} onClose={() => { setActionUser(null); setActionType(null); }} />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function BirthdaysTab({ data, loading }) {
+  if (loading) return <div className="card p-10 text-center text-ink-400">טוען…</div>;
+
+  const total = (data.thisWeek?.length || 0) + (data.nextWeek?.length || 0);
+  if (total === 0) return (
+    <div className="card p-10 text-center text-ink-400">
+      <Cake className="h-10 w-10 mx-auto mb-3 opacity-30" />
+      <p>אין יומולדות ב-14 הימים הקרובים</p>
+    </div>
+  );
+
+  function BirthdayCard({ u }) {
+    const p = u.profile || {};
+    const name = [p.firstName, p.lastName].filter(Boolean).join(' ') || '—';
+    const dob = new Date(p.dateOfBirth);
+    const dateStr = `${dob.getDate()}/${dob.getMonth() + 1}`;
+    const dayLabel = u.daysUntil === 0 ? 'היום! 🎉' : u.daysUntil === 1 ? 'מחר' : `בעוד ${u.daysUntil} ימים`;
+
+    return (
+      <div className="flex items-center gap-3 p-4 hover:bg-ink-50/40">
+        {u.avatarUrl ? (
+          <img src={u.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+        ) : (
+          <div
+            className="h-10 w-10 rounded-full text-white flex items-center justify-center font-bold shrink-0"
+            style={{ backgroundColor: getUserColor(u._id) }}
+          >
+            {(p.firstName?.[0] || u.email[0] || '?').toUpperCase()}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-ink">{name}</div>
+          <div className="text-xs text-ink-500 mt-0.5" dir="ltr">{u.email}</div>
+          {p.gedud && <div className="text-xs text-ink-400">{p.gedud}{p.phone ? ` · ${p.phone}` : ''}</div>}
+        </div>
+        <div className="shrink-0 text-left">
+          <div className="text-sm font-bold text-ink">{dateStr}</div>
+          <div className={`text-xs font-semibold mt-0.5 ${u.daysUntil === 0 ? 'text-accent' : 'text-ink-400'}`}>{dayLabel}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {data.thisWeek?.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="bg-accent-50 border-b border-accent-100 px-5 py-3">
+            <h3 className="font-bold text-accent-700 flex items-center gap-2">
+              <Cake className="h-4 w-4" />
+              השבוע ({data.thisWeek.length})
+            </h3>
+          </div>
+          <div className="divide-y divide-ink-50">
+            {data.thisWeek.map((u) => <BirthdayCard key={u._id} u={u} />)}
+          </div>
+        </div>
+      )}
+      {data.nextWeek?.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="bg-ink-50 border-b border-ink-100 px-5 py-3">
+            <h3 className="font-bold text-ink flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              השבוע הבא ({data.nextWeek.length})
+            </h3>
+          </div>
+          <div className="divide-y divide-ink-50">
+            {data.nextWeek.map((u) => <BirthdayCard key={u._id} u={u} />)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

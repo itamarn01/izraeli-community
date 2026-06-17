@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
         } else {
           toast('נשלח קוד אימות למייל', { icon: '✉️' });
         }
-        navigate(`/admin/verify?u=${encodeURIComponent(form.username)}`);
+        navigate(`/admin/verify?u=${encodeURIComponent(data.username || form.username)}`);
       } else {
         toast.success('התחברת בהצלחה');
         navigate('/admin');
@@ -53,11 +53,11 @@ export default function AdminLoginPage() {
 
         <div className="card p-7 bg-white/95 backdrop-blur">
           <h2 className="text-xl font-bold text-ink mb-1">כניסה למנהל</h2>
-          <p className="text-sm text-ink-400 mb-5">שם משתמש וסיסמה. נדרש אימות מייל בכניסה ראשונה.</p>
+          <p className="text-sm text-ink-400 mb-5">שם משתמש או מייל וסיסמה. נדרש אימות מייל בכניסה ראשונה.</p>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label className="label">שם משתמש</label>
+              <label className="label">שם משתמש או מייל</label>
               <div className="relative">
                 <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
                 <input
@@ -67,13 +67,19 @@ export default function AdminLoginPage() {
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
                   autoComplete="username"
+                  placeholder="שם משתמש או name@example.com"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="label">סיסמה</label>
+              <div className="flex items-center justify-between">
+                <label className="label">סיסמה</label>
+                <Link to="/admin/forgot-password" className="text-xs text-accent hover:underline font-semibold mb-1">
+                  שכחת סיסמה?
+                </Link>
+              </div>
               <PasswordInput
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
