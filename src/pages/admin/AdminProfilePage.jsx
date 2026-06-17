@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { UserCircle2, ImagePlus, Save, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { UserCircle2, ImagePlus, Save, KeyRound } from 'lucide-react';
 import adminApi from '../../api/adminClient.js';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
+import PasswordInput from '../../components/common/PasswordInput.jsx';
 
 export default function AdminProfilePage() {
   const { admin, setAdmin } = useAdminAuth();
@@ -16,8 +17,6 @@ export default function AdminProfilePage() {
 
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [savingPw, setSavingPw] = useState(false);
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
 
   const handleAvatarPick = async (e) => {
     const file = e.target.files?.[0];
@@ -181,45 +180,31 @@ export default function AdminProfilePage() {
         <form onSubmit={savePassword} className="space-y-4">
           <div>
             <label className="label">סיסמה נוכחית</label>
-            <div className="relative">
-              <input
-                type={showCurrent ? 'text' : 'password'}
-                className="input pr-10"
-                value={pwForm.currentPassword}
-                onChange={(e) => setPwForm((f) => ({ ...f, currentPassword: e.target.value }))}
-                dir="ltr"
-                required
-              />
-              <button type="button" onClick={() => setShowCurrent((s) => !s)} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink">
-                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+            <PasswordInput
+              value={pwForm.currentPassword}
+              onChange={(e) => setPwForm((f) => ({ ...f, currentPassword: e.target.value }))}
+              autoComplete="current-password"
+              required
+            />
           </div>
           <div>
             <label className="label">סיסמה חדשה</label>
-            <div className="relative">
-              <input
-                type={showNew ? 'text' : 'password'}
-                className="input pr-10"
-                value={pwForm.newPassword}
-                onChange={(e) => setPwForm((f) => ({ ...f, newPassword: e.target.value }))}
-                dir="ltr"
-                required
-                minLength={8}
-              />
-              <button type="button" onClick={() => setShowNew((s) => !s)} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink">
-                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+            <PasswordInput
+              value={pwForm.newPassword}
+              onChange={(e) => setPwForm((f) => ({ ...f, newPassword: e.target.value }))}
+              placeholder="לפחות 8 תווים"
+              minLength={8}
+              autoComplete="new-password"
+              required
+            />
           </div>
           <div>
             <label className="label">אימות סיסמה חדשה</label>
-            <input
-              type="password"
-              className="input"
+            <PasswordInput
               value={pwForm.confirmPassword}
               onChange={(e) => setPwForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-              dir="ltr"
+              placeholder="הזן שוב את הסיסמה"
+              autoComplete="new-password"
               required
             />
           </div>

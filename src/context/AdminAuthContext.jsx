@@ -53,12 +53,22 @@ export function AdminAuthProvider({ children }) {
     return data;
   };
 
+  const forgotPassword = async (identifier) => {
+    const { data } = await adminApi.post('/auth/forgot-password', { identifier });
+    return data;
+  };
+
+  const resetPassword = async (identifier, otp, newPassword) => {
+    const { data } = await adminApi.post('/auth/reset-password', { identifier, otp, newPassword });
+    return data;
+  };
+
   const logout = () => {
     setAdminToken(null);
     setAdmin(null);
   };
 
-  const value = { admin, loading, login, verifyOtp, bootstrap, resendOtp, logout, refresh, setAdmin };
+  const value = { admin, loading, login, verifyOtp, bootstrap, resendOtp, forgotPassword, resetPassword, logout, refresh, setAdmin };
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
