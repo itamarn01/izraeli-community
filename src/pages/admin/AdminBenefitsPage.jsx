@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, X, Gift, ImagePlus, Tag, Calendar,
-  Percent, Facebook, Instagram, Phone, Globe, ChevronLeft, ChevronRight, Filter,
+  Percent, Facebook, Instagram, Phone, Globe, ChevronLeft, ChevronRight, Filter, Ticket,
 } from 'lucide-react';
 import adminApi from '../../api/adminClient.js';
 import { formatDate } from '../../utils/format.js';
@@ -33,6 +33,7 @@ export default function AdminBenefitsPage() {
   const [orgs, setOrgs] = useState([]);
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [managingCoupons, setManagingCoupons] = useState(null);
 
   const fetchBenefits = async (p = 1) => {
     setLoading(true);
@@ -153,6 +154,9 @@ export default function AdminBenefitsPage() {
                   {b.validUntil && <span className="chip"><Calendar className="h-3 w-3" />{formatDate(b.validUntil)}</span>}
                 </div>
                 <div className="mt-3 pt-3 border-t border-ink-100 flex items-center justify-end gap-1">
+                  <button onClick={() => setManagingCoupons(b)} title="ניהול קופונים" className={`h-7 w-7 rounded-lg flex items-center justify-center ${b.couponEnabled ? 'bg-accent-50 text-accent-700 hover:bg-accent-100' : 'bg-ink-50 text-ink-500 hover:bg-ink-100'}`}>
+                    <Ticket className="h-3.5 w-3.5" />
+                  </button>
                   <button onClick={() => toggleHide(b)} title={b.isHidden ? 'הצגה' : 'הסתרה'} className="h-7 w-7 rounded-lg bg-ink-50 hover:bg-ink-100 text-ink-500 flex items-center justify-center">
                     {b.isHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                   </button>
@@ -199,8 +203,130 @@ export default function AdminBenefitsPage() {
             onSaved={(b) => { setEditing(null); setBenefits((prev) => prev.map((x) => (x._id === b._id ? { ...x, ...b } : x))); }}
           />
         )}
+        {managingCoupons && (
+          <CouponManagerModal
+            benefit={managingCoupons}
+            onClose={() => setManagingCoupons(null)}
+            onUpdated={(updated) => {
+              setBenefits((prev) => prev.map((x) => (x._id === updated._id ? { ...x, couponEnabled: updated.couponEnabled } : x)));
+              setManagingCoupons((prev) => ({ ...prev, couponEnabled: updated.couponEnabled }));
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function CouponManagerModal({ benefit, onClose, onUpdated }) {
+  const [stats, setStats] = useState({ total: 0, available: 0, claimed: 0 });
+  const [couponEnabled, setCouponEnabled] = useState(benefit.couponEnabled || false);
+  const [codes, setCodes] = useState('');
+  const [clearUnclaimed, setClearUnclaimed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    adminApi.get(`/benefits/${benefit._id}/coupons`)
+      .then(({ data }) => { setStats(data.stats); setCouponEnabled(data.couponEnabled); })
+      .catch(() => {})
+      .finally(() => setFetching(false));
+  }, [benefit._id]);
+
+  const save = async () => {
+    setLoading(true);
+    try {
+      const { data } = await adminApi.post(`/benefits/${benefit._id}/coupons`, { codes, couponEnabled, clearUnclaimed });
+      setStats(data.stats);
+      setCouponEnabled(data.couponEnabled);
+      setCodes('');
+      setClearUnclaimed(false);
+      onUpdated({ _id: benefit._id, couponEnabled: data.couponEnabled });
+      toast.success('הקופונים עודכנו');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50" onClick={onClose}>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+        className="card w-full max-w-lg overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-ink-100 px-5 py-3 flex items-center justify-between z-10">
+          <h3 className="font-bold text-ink flex items-center gap-2">
+            <Ticket className="h-4 w-4 text-accent" />
+            ניהול קופונים — {benefit.title}
+          </h3>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-500">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium text-ink text-sm">קופונים פעילים להטבה זו</div>
+              <div className="text-xs text-ink-400 mt-0.5">כשפעיל, יוזרים יוכלו לקבל קוד קופון אישי</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCouponEnabled((v) => !v)}
+              className={`relative w-12 h-6 rounded-full transition-colors ${couponEnabled ? 'bg-accent' : 'bg-ink-200'}`}
+            >
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${couponEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          {/* Stats */}
+          {!fetching && (
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="bg-ink-50 rounded-xl p-3">
+                <div className="text-2xl font-bold text-ink">{stats.total}</div>
+                <div className="text-xs text-ink-400 mt-0.5">סה"כ</div>
+              </div>
+              <div className="bg-green-50 rounded-xl p-3">
+                <div className="text-2xl font-bold text-green-700">{stats.available}</div>
+                <div className="text-xs text-green-600 mt-0.5">זמינים</div>
+              </div>
+              <div className="bg-accent-50 rounded-xl p-3">
+                <div className="text-2xl font-bold text-accent-700">{stats.claimed}</div>
+                <div className="text-xs text-accent-600 mt-0.5">נוצלו</div>
+              </div>
+            </div>
+          )}
+
+          {/* Paste codes */}
+          <div>
+            <label className="label">הוספת קודי קופון</label>
+            <p className="text-xs text-ink-400 mb-2">שורה אחת לכל קוד. ניתן להוסיף קוד QR/ברקוד אחרי Tab: <code className="bg-ink-50 px-1 rounded">קוד↹qr_קוד</code></p>
+            <textarea
+              rows={6}
+              dir="ltr"
+              className="input font-mono text-sm"
+              placeholder={"10083290742\t$10083290742$\n10083290743\t$10083290743$"}
+              value={codes}
+              onChange={(e) => setCodes(e.target.value)}
+            />
+          </div>
+
+          {/* Clear unclaimed */}
+          {stats.available > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-red-600">
+              <input type="checkbox" checked={clearUnclaimed} onChange={(e) => setClearUnclaimed(e.target.checked)} />
+              מחיקת קודים שלא נוצלו ({stats.available} קודים)
+            </label>
+          )}
+
+          <button onClick={save} disabled={loading} className="btn-primary w-full">
+            {loading ? 'שומר…' : 'שמירה'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

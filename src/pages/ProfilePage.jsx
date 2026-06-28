@@ -32,8 +32,7 @@ const MARITAL = [
 ];
 const EMPLOYMENT = [
   { v: 'employee', label: 'שכיר/ה' }, { v: 'self_employed', label: 'עצמאי/ת' },
-  { v: 'combined', label: 'משולב' }, { v: 'not_working', label: 'לא עובד/ת' },
-  { v: 'student', label: 'סטודנט/ית' },
+  { v: 'not_working', label: 'לא עובד/ת' }, { v: 'student', label: 'סטודנט/ית' },
 ];
 const STUDENT_LEVELS = [
   { v: 'bachelors', label: 'תואר ראשון' },
@@ -103,7 +102,7 @@ export default function ProfilePage() {
     gender: pf.gender || '',
     maritalStatus: pf.maritalStatus || '',
     gedud: pf.gedud || '',
-    employmentStatus: pf.employmentStatus || '',
+    employmentStatuses: pf.employmentStatuses?.length ? pf.employmentStatuses : (pf.employmentStatus && pf.employmentStatus !== 'combined' ? [pf.employmentStatus] : pf.employmentStatus === 'combined' ? ['employee', 'self_employed'] : []),
     studentLevel: pf.studentLevel || '',
     selfEmployedBusiness: pf.selfEmployedBusiness || '',
     children: pf.children?.map((c) => ({
@@ -121,8 +120,10 @@ export default function ProfilePage() {
     try {
       const payload = {
         ...form,
-        studentLevel: form.employmentStatus === 'student' ? form.studentLevel || undefined : null,
-        selfEmployedBusiness: (form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') ? form.selfEmployedBusiness : '',
+        employmentStatuses: form.employmentStatuses,
+        employmentStatus: form.employmentStatuses[0] || '',
+        studentLevel: form.employmentStatuses.includes('student') ? form.studentLevel || undefined : null,
+        selfEmployedBusiness: form.employmentStatuses.includes('self_employed') ? form.selfEmployedBusiness : '',
       };
       await api.patch('/users/me/profile', payload);
       await refresh();
@@ -415,13 +416,13 @@ export default function ProfilePage() {
               </div>
             </div>
             <div>
-              <label className="label">תעסוקה</label>
+              <label className="label">תעסוקה <span className="text-xs font-normal text-ink-400">(ניתן לבחור יותר מאחד)</span></label>
               <div className="flex flex-wrap gap-2">
-                {EMPLOYMENT.map((o) => <Pill key={o.v} active={form.employmentStatus === o.v} onClick={() => set('employmentStatus', o.v)}>{o.label}</Pill>)}
+                {EMPLOYMENT.map((o) => <Pill key={o.v} active={form.employmentStatuses.includes(o.v)} onClick={() => set('employmentStatuses', form.employmentStatuses.includes(o.v) ? form.employmentStatuses.filter((s) => s !== o.v) : [...form.employmentStatuses, o.v])}>{o.label}</Pill>)}
               </div>
             </div>
             <AnimatePresence>
-              {(form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') && (
+              {form.employmentStatuses.includes('self_employed') && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -439,7 +440,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
               )}
-              {form.employmentStatus === 'student' && (
+              {form.employmentStatuses.includes('student') && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -462,13 +463,14 @@ export default function ProfilePage() {
         {!editing && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field icon={Heart} label="מצב משפחתי" value={MARITAL_LABELS[p.maritalStatus]} />
-            <Field icon={Briefcase} label="תעסוקה" value={
-              p.employmentStatus === 'student' && p.studentLevel
-                ? `${EMPLOYMENT_LABELS[p.employmentStatus]} — ${STUDENT_LEVEL_LABELS[p.studentLevel]}`
-                : (p.employmentStatus === 'self_employed' || p.employmentStatus === 'combined') && p.selfEmployedBusiness
-                  ? `${EMPLOYMENT_LABELS[p.employmentStatus]} — ${p.selfEmployedBusiness}`
-                  : EMPLOYMENT_LABELS[p.employmentStatus]
-            } />
+            <Field icon={Briefcase} label="תעסוקה" value={(() => {
+              const statuses = p.employmentStatuses?.length ? p.employmentStatuses : (p.employmentStatus ? [p.employmentStatus] : []);
+              const labels = statuses.map((s) => EMPLOYMENT_LABELS[s] || s).join(' + ');
+              const extras = [];
+              if (statuses.includes('student') && p.studentLevel) extras.push(STUDENT_LEVEL_LABELS[p.studentLevel]);
+              if ((statuses.includes('self_employed') || p.employmentStatus === 'combined') && p.selfEmployedBusiness) extras.push(p.selfEmployedBusiness);
+              return extras.length ? `${labels} — ${extras.join(', ')}` : labels;
+            })()} />
           </div>
         )}
       </div>

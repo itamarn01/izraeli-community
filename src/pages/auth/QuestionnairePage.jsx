@@ -15,7 +15,7 @@ const initial = {
   gender: '',
   maritalStatus: '',
   gedud: '',
-  employmentStatus: '',
+  employmentStatuses: [],
   studentLevel: '',
   selfEmployedBusiness: '',
   children: [],
@@ -48,7 +48,6 @@ const MARITAL = [
 const EMPLOYMENT = [
   { v: 'employee', label: 'שכיר/ה' },
   { v: 'self_employed', label: 'עצמאי/ת' },
-  { v: 'combined', label: 'משולב' },
   { v: 'not_working', label: 'לא עובד/ת' },
   { v: 'student', label: 'סטודנט/ית' },
 ];
@@ -103,13 +102,16 @@ export default function QuestionnairePage() {
   };
   const removeChild = (i) => set('children', form.children.filter((_, idx) => idx !== i));
 
+  const toggleEmployment = (v) => set('employmentStatuses', form.employmentStatuses.includes(v) ? form.employmentStatuses.filter((s) => s !== v) : [...form.employmentStatuses, v]);
+  const hasEmployment = (v) => form.employmentStatuses.includes(v);
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.gender || !form.maritalStatus || !form.employmentStatus || !form.gedud) {
+    if (!form.gender || !form.maritalStatus || !form.employmentStatuses.length || !form.gedud) {
       toast.error('יש לבחור את כל השדות החובה');
       return;
     }
-    if (form.employmentStatus === 'student' && !form.studentLevel) {
+    if (form.employmentStatuses.includes('student') && !form.studentLevel) {
       toast.error('יש לבחור רמת לימודים');
       return;
     }
@@ -117,9 +119,11 @@ export default function QuestionnairePage() {
     try {
       const payload = {
         ...form,
+        employmentStatuses: form.employmentStatuses,
+        employmentStatus: form.employmentStatuses[0] || '',
         children: form.children.filter((c) => c.name && c.dateOfBirth),
-        studentLevel: form.employmentStatus === 'student' ? form.studentLevel : undefined,
-        selfEmployedBusiness: (form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') ? form.selfEmployedBusiness : undefined,
+        studentLevel: form.employmentStatuses.includes('student') ? form.studentLevel : undefined,
+        selfEmployedBusiness: form.employmentStatuses.includes('self_employed') ? form.selfEmployedBusiness : undefined,
       };
       await submitQuestionnaire(payload);
       toast.success('השאלון נשמר — ברוך הבא לקהילה!');
@@ -225,16 +229,17 @@ export default function QuestionnairePage() {
 
         <section>
           <SectionTitle icon={Briefcase} title="תעסוקה" />
+          <p className="text-xs text-ink-400 mb-2">ניתן לבחור יותר מאפשרות אחת</p>
           <div className="flex flex-wrap gap-2">
             {EMPLOYMENT.map((o) => (
-              <Pill key={o.v} active={form.employmentStatus === o.v} onClick={() => set('employmentStatus', o.v)}>
+              <Pill key={o.v} active={hasEmployment(o.v)} onClick={() => toggleEmployment(o.v)}>
                 {o.label}
               </Pill>
             ))}
           </div>
 
           <AnimatePresence>
-            {(form.employmentStatus === 'self_employed' || form.employmentStatus === 'combined') && (
+            {form.employmentStatuses.includes('self_employed') && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -252,7 +257,7 @@ export default function QuestionnairePage() {
                 </div>
               </motion.div>
             )}
-            {form.employmentStatus === 'student' && (
+            {form.employmentStatuses.includes('student') && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
