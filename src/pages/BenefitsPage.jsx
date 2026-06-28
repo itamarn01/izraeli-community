@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Search, Gift, ExternalLink, Tag, X, Calendar, Code2, Globe, Facebook,
-  Instagram, Phone, Plus, Percent, Info, ShoppingBag, ImagePlus, Send,
+  Instagram, Phone, Plus, Percent, Info, ShoppingBag, ImagePlus, Send, Ticket, CheckCircle2, Clock,
 } from 'lucide-react';
+import Barcode from 'react-barcode';
 import api from '../api/client';
 import { SkeletonGrid } from '../components/skeletons/Skeletons.jsx';
 import { formatDate } from '../utils/format.js';
@@ -252,6 +253,94 @@ export default function BenefitsPage() {
   );
 }
 
+function CouponSection({ benefitId, validUntil }) {
+  const [status, setStatus] = useState('idle'); // idle | loading | claimed | sold_out | expired
+  const [coupon, setCoupon] = useState(null);
+
+  useEffect(() => {
+    api.get(`/benefits/${benefitId}/my-coupon`)
+      .then(({ data }) => {
+        if (data.coupon) { setCoupon(data.coupon); setStatus('claimed'); }
+        else if (data.expired) setStatus('expired');
+        else if (data.soldOut) setStatus('sold_out');
+        else setStatus('idle');
+      })
+      .catch(() => setStatus('idle'));
+  }, [benefitId]);
+
+  const claim = async () => {
+    setStatus('loading');
+    try {
+      const { data } = await api.post(`/benefits/${benefitId}/claim`);
+      setCoupon(data.coupon);
+      setStatus('claimed');
+      toast.success('הקופון הוקצה לך! נשלח גם למייל.');
+    } catch (err) {
+      const msg = err?.response?.data?.message || '';
+      if (msg.includes('נגמרו')) setStatus('sold_out');
+      else if (msg.includes('תוקף')) setStatus('expired');
+      else toast.error(msg || 'שגיאה בקבלת קופון');
+    }
+  };
+
+  if (status === 'expired') {
+    return (
+      <div className="rounded-xl border border-ink-200 bg-ink-50 p-4 flex items-center gap-3 text-ink-400">
+        <Clock className="h-5 w-5 shrink-0" />
+        <span className="text-sm font-medium">ההטבה פגה תוקף</span>
+      </div>
+    );
+  }
+  if (status === 'sold_out') {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-600">
+        <Ticket className="h-5 w-5 shrink-0" />
+        <span className="text-sm font-medium">נגמרו הקופונים, מצטערים!</span>
+      </div>
+    );
+  }
+  if (status === 'claimed' && coupon) {
+    return (
+      <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-green-700 font-semibold text-sm">
+          <CheckCircle2 className="h-4 w-4" />
+          הקופון שלך
+        </div>
+        <div className="text-center">
+          <code className="font-mono text-2xl font-bold tracking-widest text-green-800 select-all block">{coupon.code}</code>
+        </div>
+        {coupon.qrCode && (
+          <div className="flex flex-col items-center gap-1 bg-white rounded-xl p-3 border border-green-100">
+            <Barcode
+              value={coupon.qrCode}
+              format="CODE128"
+              width={1.6}
+              height={60}
+              displayValue={true}
+              fontSize={12}
+              margin={4}
+              background="#ffffff"
+              lineColor="#166534"
+            />
+          </div>
+        )}
+        <p className="text-xs text-green-600 text-center">הקוד נשלח גם לכתובת המייל שלך</p>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={claim}
+      disabled={status === 'loading'}
+      className="btn-primary w-full disabled:opacity-60"
+    >
+      <Ticket className="h-4 w-4" />
+      {status === 'loading' ? 'מקצה קופון…' : 'קבלת קופון אישי'}
+    </button>
+  );
+}
+
 function BenefitModal({ benefit: b, onClose }) {
   const discountBadge = () => {
     if (b.discountType === 'percentage' && b.discountPercent) return `${b.discountPercent}% הנחה`;
@@ -370,8 +459,13 @@ function BenefitModal({ benefit: b, onClose }) {
             )}
           </div>
 
-          {/* Redemption code */}
-          {b.redemptionCode && (
+          {/* Coupon system */}
+          {b.couponEnabled && (
+            <CouponSection benefitId={b._id} validUntil={b.validUntil} />
+          )}
+
+          {/* Redemption code (static — non-coupon benefits) */}
+          {!b.couponEnabled && b.redemptionCode && (
             <div className="rounded-xl bg-accent-50 border border-accent-100 p-3 flex items-center gap-3">
               <Code2 className="h-4 w-4 text-accent-700 shrink-0" />
               <div className="flex-1">
