@@ -14,6 +14,7 @@ import QuestionnairePage from './pages/auth/QuestionnairePage.jsx';
 
 import DashboardPage from './pages/DashboardPage.jsx';
 import BenefitsPage from './pages/BenefitsPage.jsx';
+import FormsPage from './pages/FormsPage.jsx';
 import JobsPage from './pages/JobsPage.jsx';
 import FeedPage from './pages/FeedPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -34,6 +35,7 @@ import AdminJobsPage from './pages/admin/AdminJobsPage.jsx';
 import AdminPostsPage from './pages/admin/AdminPostsPage.jsx';
 import AdminBenefitsPage from './pages/admin/AdminBenefitsPage.jsx';
 import AdminBenefitSuggestionsPage from './pages/admin/AdminBenefitSuggestionsPage.jsx';
+import AdminFormsPage from './pages/admin/AdminFormsPage.jsx';
 import AdminProfilePage from './pages/admin/AdminProfilePage.jsx';
 
 function RequireAuth({ children }) {
@@ -112,6 +114,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="benefits" element={<BenefitsPage />} />
+        <Route path="forms" element={<FormsPage />} />
         <Route path="jobs" element={<JobsPage />} />
         <Route path="feed" element={<FeedPage />} />
         <Route path="profile" element={<ProfilePage />} />
@@ -137,6 +140,7 @@ export default function App() {
         <Route path="posts" element={<AdminPostsPage />} />
         <Route path="benefits" element={<AdminBenefitsPage />} />
         <Route path="benefit-suggestions" element={<AdminBenefitSuggestionsPage />} />
+        <Route path="forms" element={<AdminFormsPage />} />
         <Route path="profile" element={<AdminProfilePage />} />
       </Route>
 
