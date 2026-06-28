@@ -26,7 +26,7 @@ const NAV = [
   { to: '/app/benefits', label: 'נהנים 186', icon: Gift },
   { to: '/app/jobs', label: 'מתחברים 186', icon: Briefcase },
   { to: '/app/feed', label: 'מדברים 186', icon: MessagesSquare },
-  { to: '/app/forms', label: 'טפסים', icon: FileText },
+  { to: '/app/forms', label: 'טפסים 186', icon: FileText },
   { to: '/app/profile', label: 'הפרופיל שלי', icon: UserCircle2 },
 ];
 
