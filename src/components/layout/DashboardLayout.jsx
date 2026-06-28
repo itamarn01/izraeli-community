@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Gift, Briefcase, MessagesSquare, UserCircle2,
   LogOut, Menu, X, Bell, Search, Briefcase as JobIcon, Gift as BenefitIcon,
-  MessagesSquare as PostIcon, Trash2, CheckCheck, ChevronLeft, ChevronDown,
+  MessagesSquare as PostIcon, Trash2, CheckCheck, ChevronLeft, ChevronDown, FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TERMS_SECTIONS, PRIVACY_SECTIONS } from '../../content/legal.js';
@@ -26,13 +26,14 @@ const NAV = [
   { to: '/app/benefits', label: 'נהנים 186', icon: Gift },
   { to: '/app/jobs', label: 'מתחברים 186', icon: Briefcase },
   { to: '/app/feed', label: 'מדברים 186', icon: MessagesSquare },
+  { to: '/app/forms', label: 'טפסים', icon: FileText },
   { to: '/app/profile', label: 'הפרופיל שלי', icon: UserCircle2 },
 ];
 
-const TYPE_ICON = { post: PostIcon, job: JobIcon, benefit: BenefitIcon };
-const TYPE_LABEL = { post: 'פוסט', job: 'משרה', benefit: 'הטבה' };
-const TYPE_ROUTE = { post: '/app/feed', job: '/app/jobs', benefit: '/app/benefits' };
-const TYPE_PARAM = { post: 'post', job: 'job', benefit: 'benefit' };
+const TYPE_ICON = { post: PostIcon, job: JobIcon, benefit: BenefitIcon, form: FileText };
+const TYPE_LABEL = { post: 'פוסט', job: 'משרה', benefit: 'הטבה', form: 'טופס' };
+const TYPE_ROUTE = { post: '/app/feed', job: '/app/jobs', benefit: '/app/benefits', form: '/app/forms' };
+const TYPE_PARAM = { post: 'post', job: 'job', benefit: 'benefit', form: 'form' };
 
 function NotificationPanel({ onClose }) {
   const navigate = useNavigate();
