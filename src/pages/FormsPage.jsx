@@ -131,6 +131,7 @@ function FormFillModal({ form, onClose }) {
         .from(pdfRef.current)
         .save();
       toast.success('ה-PDF הורד');
+      api.post(`/forms/${form._id}/submit`, { values }).catch(() => {});
     } catch (err) {
       toast.error('שגיאה ביצירת ה-PDF');
     } finally {

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   FileText, Plus, Pencil, Trash2, Eye, EyeOff, X, GripVertical,
-  Settings2, ImagePlus, Loader2, Search, Palette,
+  Settings2, ImagePlus, Loader2, Search, Palette, ClipboardList,
 } from 'lucide-react';
 
 const THEMES = [
@@ -32,6 +32,7 @@ export default function AdminFormsPage() {
   const [orgs, setOrgs] = useState([]);
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [viewingSubmissions, setViewingSubmissions] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -127,6 +128,9 @@ export default function AdminFormsPage() {
                 <button onClick={() => openEdit(f)} className="flex-1 btn-outline !py-1.5 text-xs">
                   <Pencil className="h-3.5 w-3.5" /> עריכה
                 </button>
+                <button onClick={() => setViewingSubmissions(f)} title="הגשות" className="h-8 w-8 rounded-lg bg-ink-50 hover:bg-ink-100 flex items-center justify-center text-ink-600">
+                  <ClipboardList className="h-4 w-4" />
+                </button>
                 <button onClick={() => togglePublish(f)} title={f.isPublished ? 'הסתרה' : 'פרסום'} className="h-8 w-8 rounded-lg bg-ink-50 hover:bg-ink-100 flex items-center justify-center text-ink-500">
                   {f.isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -148,8 +152,101 @@ export default function AdminFormsPage() {
             onSaved={() => { setCreating(false); setEditing(null); load(); }}
           />
         )}
+        {viewingSubmissions && (
+          <SubmissionsModal
+            form={viewingSubmissions}
+            onClose={() => setViewingSubmissions(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function SubmissionsModal({ form, onClose }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminApi.get(`/forms/${form._id}/submissions`)
+      .then(({ data: d }) => setData(d))
+      .catch(() => toast.error('שגיאה בטעינת ההגשות'))
+      .finally(() => setLoading(false));
+  }, [form._id]);
+
+  const fields = data?.form?.fields || form.fields || [];
+  const submissions = data?.submissions || [];
+
+  const fmt = (iso) => new Date(iso).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-ink/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        className="card w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white border-b border-ink-100 px-5 py-3 flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="font-bold text-ink flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-accent" />
+              הגשות — {form.title}
+            </h3>
+            {!loading && <p className="text-xs text-ink-400 mt-0.5">{submissions.length} הגשות</p>}
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-500">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4">
+          {loading ? (
+            <div className="text-center py-10 text-ink-400">טוען…</div>
+          ) : submissions.length === 0 ? (
+            <div className="text-center py-10 text-ink-400">אין הגשות עדיין.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-right border-collapse">
+                <thead>
+                  <tr className="bg-ink-50 text-ink-600 text-xs">
+                    <th className="px-3 py-2 font-semibold border-b border-ink-200 whitespace-nowrap">תאריך</th>
+                    <th className="px-3 py-2 font-semibold border-b border-ink-200 whitespace-nowrap">שם</th>
+                    <th className="px-3 py-2 font-semibold border-b border-ink-200 whitespace-nowrap">מייל</th>
+                    {fields.map((f) => (
+                      <th key={f.key} className="px-3 py-2 font-semibold border-b border-ink-200 whitespace-nowrap">{f.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((s) => (
+                    <tr key={s._id} className="border-b border-ink-100 hover:bg-ink-50/50">
+                      <td className="px-3 py-2 text-ink-500 whitespace-nowrap text-xs">{fmt(s.createdAt)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {s.user ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim() : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-ink-500 whitespace-nowrap text-xs">{s.user?.email || '—'}</td>
+                      {fields.map((f) => (
+                        <td key={f.key} className="px-3 py-2 max-w-[200px] truncate" title={s.values?.[f.key] || ''}>
+                          {s.values?.[f.key] || <span className="text-ink-300">—</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
