@@ -177,7 +177,7 @@ h1, h2, h3, h4 {
 .form-doc-body p { margin: 0 0 0.6em; }
 .form-doc-body h1, .form-doc-body h2, .form-doc-body h3 { font-weight: 700; margin: 0.4em 0; }
 .form-doc-body ul, .form-doc-body ol { padding-inline-start: 1.5em; margin: 0.4em 0; }
-.form-doc-body .form-val { font-weight: 700; }
+.form-doc-body .form-val { font-weight: 400; }
 .form-doc-body .form-blank { color: #9ca3af; letter-spacing: 1px; }
 .form-doc-body .form-ph {
   background: #eef2ff; color: #4338ca; border-radius: 6px;

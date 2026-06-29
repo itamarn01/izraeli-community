@@ -3,8 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   FileText, Plus, Pencil, Trash2, Eye, EyeOff, X, GripVertical,
-  Settings2, ImagePlus, Loader2, Search,
+  Settings2, ImagePlus, Loader2, Search, Palette,
 } from 'lucide-react';
+
+const THEMES = [
+  { id: 'official', label: 'רשמי' },
+  { id: 'modern',   label: 'מודרני' },
+  { id: 'classic',  label: 'קלאסי' },
+];
+
+const COLORS = [
+  { id: 'olive',    label: 'זית',   hex: '#6B7D5F' },
+  { id: 'blue',     label: 'כחול',  hex: '#1E40AF' },
+  { id: 'bordeaux', label: 'בורדו', hex: '#881337' },
+  { id: 'charcoal', label: 'פחם',   hex: '#374151' },
+  { id: 'forest',   label: 'יער',   hex: '#14532D' },
+];
 import adminApi from '../../api/adminClient';
 import FormDocument from '../../components/forms/FormDocument.jsx';
 import RichTextEditor from '../../components/common/RichTextEditor.jsx';
@@ -193,6 +207,8 @@ function FormEditorModal({ initial, orgs, onClose, onSaved }) {
     adminSignatureLabel: initial?.adminSignatureLabel || '',
     isPublished: initial?.isPublished || false,
     organization: initial?.organization?._id || initial?.organization || (orgs[0]?._id || ''),
+    theme: initial?.theme || 'official',
+    colorKey: initial?.colorKey || 'olive',
   });
   const [loading, setLoading] = useState(false);
   const [uploadingSig, setUploadingSig] = useState(false);
@@ -307,6 +323,51 @@ function FormEditorModal({ initial, orgs, onClose, onSaved }) {
             <div>
               <label className="label">גוף המכתב</label>
               <RichTextEditor value={form.bodyHtml} fields={form.fields} onChange={(html) => set('bodyHtml', html)} />
+            </div>
+
+            {/* Document design */}
+            <div className="rounded-xl border border-ink-200 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-ink">
+                <Palette className="h-4 w-4 text-accent" /> עיצוב המסמך
+              </div>
+              <div>
+                <label className="label text-xs !mb-1.5">סגנון</label>
+                <div className="flex gap-2 flex-wrap">
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => set('theme', t.id)}
+                      className={`px-3 py-1.5 text-sm rounded-lg border font-medium transition ${
+                        form.theme === t.id
+                          ? 'border-accent bg-accent text-white'
+                          : 'border-ink-200 text-ink-600 hover:border-ink-400 bg-white'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="label text-xs !mb-1.5">ערכת צבעים</label>
+                <div className="flex gap-2.5 flex-wrap items-center">
+                  {COLORS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      title={c.label}
+                      onClick={() => set('colorKey', c.id)}
+                      style={{ background: c.hex }}
+                      className={`h-7 w-7 rounded-full border-2 transition-transform ${
+                        form.colorKey === c.id
+                          ? 'border-ink scale-125 shadow-md'
+                          : 'border-transparent hover:scale-110'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Signature settings */}
