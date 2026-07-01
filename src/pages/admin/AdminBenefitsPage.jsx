@@ -9,7 +9,7 @@ import adminApi from '../../api/adminClient.js';
 import { formatDate } from '../../utils/format.js';
 import { useImageUpload } from '../../hooks/useImageUpload.js';
 
-const CATEGORIES = ['כללי', 'מסעדות', 'בריאות', 'ספורט', 'בידור', 'קניות', 'חינוך', 'נסיעות', 'טכנולוגיה', 'אחר'];
+const CATEGORIES = ['כללי', 'מסעדות', 'בריאות', 'ספורט', 'בידור', 'קניות', 'צרכנות', 'חינוך', 'נסיעות', 'טכנולוגיה', 'אחר'];
 const PAGE_SIZE = 25;
 const GEDUD_OPTIONS = ['', 'משמר העמקים', 'אבישי', 'הכרמל', 'אבשלום', 'חרב שאול', 'מטה', 'שותף לדרך'];
 const GEDUD_IMAGES = {
@@ -487,7 +487,7 @@ function BenefitFormModal({ initial, orgs, onClose, onSaved }) {
           {/* Discount */}
           <div>
             <label className="label">סוג הנחה</label>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="radio" checked={form.discountType === 'percentage'} onChange={() => set('discountType', 'percentage')} />
                 <span className="text-sm">אחוז הנחה</span>
@@ -496,9 +496,13 @@ function BenefitFormModal({ initial, orgs, onClose, onSaved }) {
                 <input type="radio" checked={form.discountType === 'price_comparison'} onChange={() => set('discountType', 'price_comparison')} />
                 <span className="text-sm">מחיר לפני ואחרי</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={form.discountType === 'gift_with_purchase'} onChange={() => set('discountType', 'gift_with_purchase')} />
+                <span className="text-sm">מתנה בקנייה</span>
+              </label>
             </div>
           </div>
-          {form.discountType === 'percentage' ? (
+          {form.discountType === 'percentage' && (
             <div>
               <label className="label">אחוז הנחה</label>
               <div className="relative">
@@ -506,7 +510,8 @@ function BenefitFormModal({ initial, orgs, onClose, onSaved }) {
                 <input type="number" min="0" max="100" className="input pr-9" value={form.discountPercent} onChange={(e) => set('discountPercent', e.target.value)} placeholder="20" />
               </div>
             </div>
-          ) : (
+          )}
+          {form.discountType === 'price_comparison' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">מחיר מקורי (₪)</label>
@@ -517,6 +522,11 @@ function BenefitFormModal({ initial, orgs, onClose, onSaved }) {
                 <input type="number" min="0" className="input" value={form.discountedPrice} onChange={(e) => set('discountedPrice', e.target.value)} />
               </div>
             </div>
+          )}
+          {form.discountType === 'gift_with_purchase' && (
+            <p className="text-sm text-ink-500 bg-ink-50 rounded-lg px-3 py-2">
+              פרט את המתנה בשדה "מה מקבלים?" ואת תנאי הקנייה בשדה "איך ממשים?" למטה.
+            </p>
           )}
 
           <div>

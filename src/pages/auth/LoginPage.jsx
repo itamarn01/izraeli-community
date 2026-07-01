@@ -121,7 +121,7 @@ export default function LoginPage() {
       {mode === 'password' && (
         <form onSubmit={onPasswordSubmit} className="space-y-4">
           <div>
-            <label className="label">אימייל או טלפון</label>
+            <label className="label">אימייל</label>
             <div className="relative">
               <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
               <input
