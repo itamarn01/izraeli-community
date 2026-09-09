@@ -45,7 +45,9 @@ function ToolBtn({ onClick, title, children, active }) {
   );
 }
 
-export default function RichTextEditor({ value, fields = [], onChange, placeholder = 'כתבו כאן את גוף המכתב…' }) {
+// `showFields` turns off the {{placeholder}} inserter for editors that are plain
+// rich text (event descriptions) rather than fillable form templates.
+export default function RichTextEditor({ value, fields = [], onChange, placeholder = 'כתבו כאן את גוף המכתב…', showFields = true, fieldsLabel = 'הוספת שדה', fieldsEmptyHint = 'הגדירו שדות תחילה ←' }) {
   const ref = useRef(null);
   const savedRange = useRef(null);
   const initialized = useRef(false);
@@ -131,6 +133,7 @@ export default function RichTextEditor({ value, fields = [], onChange, placehold
         </select>
 
         {/* Insert field */}
+        {showFields && (
         <div className="relative mr-auto">
           <button
             type="button"
@@ -139,13 +142,13 @@ export default function RichTextEditor({ value, fields = [], onChange, placehold
             className="h-8 inline-flex items-center gap-1 rounded-lg bg-accent-50 text-accent-700 px-2.5 text-xs font-semibold hover:bg-accent-100 transition"
           >
             <Plus className="h-3.5 w-3.5" />
-            הוספת שדה
+            {fieldsLabel}
             <ChevronDown className="h-3 w-3" />
           </button>
           {fieldMenu && (
             <div className="absolute left-0 top-full mt-1 w-52 max-h-60 overflow-y-auto card shadow-card z-30 p-1">
               {fields.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-ink-400">הגדירו שדות תחילה ←</div>
+                <div className="px-3 py-2 text-xs text-ink-400">{fieldsEmptyHint}</div>
               ) : (
                 fields.map((f) => (
                   <button
@@ -165,6 +168,7 @@ export default function RichTextEditor({ value, fields = [], onChange, placehold
             </div>
           )}
         </div>
+        )}
       </div>
 
       <div

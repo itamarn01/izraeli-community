@@ -4,9 +4,11 @@ import toast from 'react-hot-toast';
 import {
   Search, Mail, Trash2, KeyRound, Send, X, ShieldCheck, ShieldOff, Filter,
   ChevronLeft, ChevronRight, Download, Baby, Phone, MapPin, Calendar,
-  Briefcase, Heart, Users, UserX, Clock, GraduationCap, Cake,
+  Briefcase, Heart, Users, UserX, Clock, GraduationCap, Cake, Megaphone,
 } from 'lucide-react';
 import adminApi from '../../api/adminClient.js';
+import RichTextEditor from '../../components/common/RichTextEditor.jsx';
+import BroadcastModal from '../../components/admin/BroadcastModal.jsx';
 import { timeAgo, formatDate } from '../../utils/format.js';
 
 const PAGE_SIZE = 25;
@@ -62,6 +64,20 @@ export default function AdminUsersPage() {
   const [filterEmploy, setFilterEmploy] = useState('all');
   const [filterGender, setFilterGender] = useState('all');
   const [filterMarital, setFilterMarital] = useState('all');
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+
+  // Mirrors buildParams: the broadcast must target exactly the rows on screen.
+  const activeFilters = () => {
+    const f = {};
+    if (q) f.q = q;
+    if (filterVerified !== 'all') f.isEmailVerified = filterVerified;
+    if (filterRole !== 'all') f.role = filterRole;
+    if (filterGedud !== 'all') f.gedud = filterGedud;
+    if (filterEmploy !== 'all') f.employmentStatus = filterEmploy;
+    if (filterGender !== 'all') f.gender = filterGender;
+    if (filterMarital !== 'all') f.maritalStatus = filterMarital;
+    return f;
+  };
 
   const [actionUser, setActionUser] = useState(null);
   const [actionType, setActionType] = useState(null);
@@ -183,10 +199,16 @@ export default function AdminUsersPage() {
           </p>
         </div>
         {tab === 'active' && (
-          <button onClick={handleExport} disabled={exporting} className="btn-outline">
-            <Download className="h-4 w-4" />
-            {exporting ? 'מייצא…' : 'ייצוא לאקסל'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setBroadcastOpen(true)} className="btn-primary">
+              <Megaphone className="h-4 w-4" />
+              שליחת מייל לתפוצה
+            </button>
+            <button onClick={handleExport} disabled={exporting} className="btn-outline">
+              <Download className="h-4 w-4" />
+              {exporting ? 'מייצא…' : 'ייצוא לאקסל'}
+            </button>
+          </div>
         )}
         {tab === 'birthdays' && (
           <button onClick={fetchBirthdays} disabled={birthdaysLoading} className="btn-outline">
@@ -423,6 +445,13 @@ export default function AdminUsersPage() {
         )}
         {actionUser && actionType === 'reset' && (
           <ResetPasswordModal user={actionUser} onClose={() => { setActionUser(null); setActionType(null); }} />
+        )}
+        {broadcastOpen && (
+          <BroadcastModal
+            title="שליחת מייל לתפוצה"
+            audience={{ type: 'users', filters: activeFilters() }}
+            onClose={() => setBroadcastOpen(false)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -714,9 +743,14 @@ function SendMessageModal({ user, onClose }) {
         </div>
         <div>
           <label className="label">תוכן ההודעה</label>
-          <textarea rows={6} className="input" value={message} onChange={(e) => setMessage(e.target.value)} required />
+          <RichTextEditor
+            value={message}
+            onChange={setMessage}
+            showFields={false}
+            placeholder="כתבו כאן את ההודעה. אפשר לעצב עם הכפתורים למעלה."
+          />
         </div>
-        <button type="submit" className="btn-primary w-full" disabled={loading}>
+        <button type="submit" className="btn-primary w-full" disabled={loading || !message.trim()}>
           <Send className="h-4 w-4" />
           {loading ? 'שולח…' : 'שליחת מייל'}
         </button>

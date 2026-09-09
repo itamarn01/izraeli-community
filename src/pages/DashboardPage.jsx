@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck, Building2 } from 'lucide-react';
+import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck, Building2, CalendarDays, Clock, MapPin, Check, Compass } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SkeletonStat, SkeletonGrid, SkeletonList } from '../components/skeletons/Skeletons.jsx';
 import { timeAgo } from '../utils/format.js';
+import { formatEventDate, formatEventHours, countdownLabel } from '../utils/eventDate.js';
 
 const GEDUD_IMAGES = {
   'משמר העמקים': '/mishmar_haamakim.png',
@@ -19,18 +20,24 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ benefits: [], jobs: [], posts: [] });
+  const [nextEvent, setNextEvent] = useState(null);
 
   useEffect(() => {
     let cancel = false;
     (async () => {
       try {
-        const [b, j, p] = await Promise.all([
+        const [b, j, p, ev] = await Promise.all([
           api.get('/benefits'),
           api.get('/jobs'),
           api.get('/posts'),
+          api.get('/events').catch(() => ({ data: { events: [] } })),
         ]);
         if (cancel) return;
         setData({ benefits: b.data.benefits, jobs: j.data.jobs, posts: p.data.posts });
+        // The soonest event that is still open — the banner is a nudge, not an archive.
+        setNextEvent(
+          (ev.data.events || []).find((e) => !e.isPast && !e.isRegistrationClosed) || null
+        );
       } catch {
         /* handled by interceptor */
       } finally {
@@ -64,6 +71,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {nextEvent && <UpcomingEventBanner event={nextEvent} />}
 
       <section>
         <SectionHeader title="עדכונים אחרונים מהקהילה" linkTo="/app/feed" />
@@ -190,6 +199,83 @@ function StatCard({ icon: Icon, label, value, hint, tone = 'accent', to }) {
     </Link>
   ) : (
     <div className="card p-5">{inner}</div>
+  );
+}
+
+// Nudge toward the next open event. Members who already registered see their
+// booking here instead of another call to action.
+function UpcomingEventBanner({ event }) {
+  const reg = event.myRegistration?.status === 'registered' ? event.myRegistration : null;
+  const countdown = countdownLabel(event.date);
+
+  return (
+    <Link
+      to={`/app/events?event=${event._id}`}
+      className="card block overflow-hidden hover:shadow-soft transition group"
+    >
+      <div className="flex flex-col sm:flex-row">
+        <div className="relative h-32 sm:h-auto sm:w-56 shrink-0 overflow-hidden bg-ink-100">
+          {event.imageUrl ? (
+            <img
+              src={event.imageUrl}
+              alt=""
+              className="h-full w-full object-cover group-hover:scale-105 transition duration-500"
+            />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-bl from-ink to-ink-700" />
+          )}
+        </div>
+
+        <div className="flex-1 p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="chip-accent">
+              <CalendarDays className="h-3.5 w-3.5" />
+              אירוע קרוב
+            </span>
+            {countdown && <span className="chip">{countdown}</span>}
+            {reg && (
+              <span className="chip !bg-olive-100 !text-olive-800">
+                <Check className="h-3.5 w-3.5" />
+                רשומים
+              </span>
+            )}
+          </div>
+
+          <h2 className="mt-2.5 text-lg font-bold text-ink leading-snug">{event.title}</h2>
+          {event.summary && <p className="mt-1 text-sm text-ink-500 line-clamp-2">{event.summary}</p>}
+
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-500">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5 text-accent" />
+              {formatEventDate(event.date)}
+            </span>
+            {formatEventHours(event) && (
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-accent" />
+                {formatEventHours(event)}
+              </span>
+            )}
+            {event.location && (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-accent" />
+                {event.location}
+              </span>
+            )}
+            {reg?.tour && (
+              <span className="inline-flex items-center gap-1.5">
+                <Compass className="h-3.5 w-3.5 text-accent" />
+                סיור {reg.tour.time}
+              </span>
+            )}
+          </div>
+
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
+            {reg ? 'צפייה ועריכה של ההרשמה' : 'להרשמה לאירוע'}
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
