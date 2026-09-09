@@ -19,6 +19,8 @@ import JobsPage from './pages/JobsPage.jsx';
 import FeedPage from './pages/FeedPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import LandingPage from './pages/LandingPage.jsx';
+import EventLandingPage from './pages/EventLandingPage.jsx';
+import EventsPage from './pages/EventsPage.jsx';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx';
 import TermsPage from './pages/TermsPage.jsx';
 import PrivacyPage from './pages/PrivacyPage.jsx';
@@ -36,6 +38,8 @@ import AdminPostsPage from './pages/admin/AdminPostsPage.jsx';
 import AdminBenefitsPage from './pages/admin/AdminBenefitsPage.jsx';
 import AdminBenefitSuggestionsPage from './pages/admin/AdminBenefitSuggestionsPage.jsx';
 import AdminFormsPage from './pages/admin/AdminFormsPage.jsx';
+import AdminEventsPage from './pages/admin/AdminEventsPage.jsx';
+import AdminBroadcastsPage from './pages/admin/AdminBroadcastsPage.jsx';
 import AdminProfilePage from './pages/admin/AdminProfilePage.jsx';
 
 function RequireAuth({ children }) {
@@ -81,6 +85,8 @@ export default function App() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/accessibility-statement" element={<AccessibilityStatementPage />} />
+      {/* Public, shareable event landing page — registration itself still requires an account */}
+      <Route path="/e/:slug" element={<EventLandingPage />} />
       <Route path="/join" element={<OrgCodePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -117,6 +123,7 @@ export default function App() {
         <Route path="forms" element={<FormsPage />} />
         <Route path="jobs" element={<JobsPage />} />
         <Route path="feed" element={<FeedPage />} />
+        <Route path="events" element={<EventsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
@@ -141,6 +148,8 @@ export default function App() {
         <Route path="benefits" element={<AdminBenefitsPage />} />
         <Route path="benefit-suggestions" element={<AdminBenefitSuggestionsPage />} />
         <Route path="forms" element={<AdminFormsPage />} />
+        <Route path="events" element={<AdminEventsPage />} />
+        <Route path="broadcasts" element={<AdminBroadcastsPage />} />
         <Route path="profile" element={<AdminProfilePage />} />
       </Route>
 

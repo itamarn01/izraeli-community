@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Gift, Briefcase, MessagesSquare, UserCircle2,
   LogOut, Menu, X, Bell, Search, Briefcase as JobIcon, Gift as BenefitIcon,
   MessagesSquare as PostIcon, Trash2, CheckCheck, ChevronLeft, ChevronDown, FileText,
+  CalendarDays,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TERMS_SECTIONS, PRIVACY_SECTIONS } from '../../content/legal.js';
@@ -20,20 +21,22 @@ function getUserColor(id) {
 import api from '../../api/client.js';
 import { timeAgo } from '../../utils/format.js';
 import Logo from '../common/Logo.jsx';
+import EventPopupGate from '../events/EventPopupGate.jsx';
 
 const NAV = [
   { to: '/app', label: 'דשבורד', icon: LayoutDashboard, end: true },
   { to: '/app/benefits', label: 'נהנים 186', icon: Gift },
   { to: '/app/jobs', label: 'מתחברים 186', icon: Briefcase },
   { to: '/app/feed', label: 'מדברים 186', icon: MessagesSquare },
+  { to: '/app/events', label: 'אירועים 186', icon: CalendarDays },
   { to: '/app/forms', label: 'טפסים 186', icon: FileText },
   { to: '/app/profile', label: 'הפרופיל שלי', icon: UserCircle2 },
 ];
 
-const TYPE_ICON = { post: PostIcon, job: JobIcon, benefit: BenefitIcon, form: FileText };
-const TYPE_LABEL = { post: 'פוסט', job: 'משרה', benefit: 'הטבה', form: 'טופס' };
-const TYPE_ROUTE = { post: '/app/feed', job: '/app/jobs', benefit: '/app/benefits', form: '/app/forms' };
-const TYPE_PARAM = { post: 'post', job: 'job', benefit: 'benefit', form: 'form' };
+const TYPE_ICON = { post: PostIcon, job: JobIcon, benefit: BenefitIcon, form: FileText, event: CalendarDays };
+const TYPE_LABEL = { post: 'פוסט', job: 'משרה', benefit: 'הטבה', form: 'טופס', event: 'אירוע' };
+const TYPE_ROUTE = { post: '/app/feed', job: '/app/jobs', benefit: '/app/benefits', form: '/app/forms', event: '/app/events' };
+const TYPE_PARAM = { post: 'post', job: 'job', benefit: 'benefit', form: 'form', event: 'event' };
 
 function NotificationPanel({ onClose }) {
   const navigate = useNavigate();
@@ -388,6 +391,7 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-canvas">
       <TermsModal />
+      <EventPopupGate />
       <aside className="hidden lg:flex fixed inset-y-0 right-0 w-72 z-30">
         <SidebarContent />
       </aside>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, MessagesSquare, Gift,
-  LogOut, Menu, ShieldCheck, Send, UserCircle2, FileText,
+  LogOut, Menu, ShieldCheck, Send, UserCircle2, FileText, CalendarDays, Megaphone,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
 import Logo from '../common/Logo.jsx';
@@ -16,6 +16,8 @@ const NAV = [
   { to: '/admin/benefits', label: 'הטבות', icon: Gift },
   { to: '/admin/benefit-suggestions', label: 'הצעות הטבות', icon: Send },
   { to: '/admin/forms', label: 'טפסים', icon: FileText },
+  { to: '/admin/events', label: 'אירועים', icon: CalendarDays },
+  { to: '/admin/broadcasts', label: 'תפוצות מייל', icon: Megaphone },
   { to: '/admin/profile', label: 'פרופיל', icon: UserCircle2 },
 ];
 
