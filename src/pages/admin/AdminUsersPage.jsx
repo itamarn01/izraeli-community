@@ -538,7 +538,6 @@ function ModalFrame({ title, onClose, children, wide }) {
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
@@ -593,6 +592,33 @@ function UserProfileModal({ user: initialUser, onClose }) {
   const p = user.profile || {};
   const name = [p.firstName, p.lastName].filter(Boolean).join(' ') || '—';
   const age = calcAge(p.dateOfBirth);
+
+  const [spouseBusy, setSpouseBusy] = useState(false);
+  const verifySpouse = async () => {
+    setSpouseBusy(true);
+    try {
+      const { data } = await adminApi.post(`/users/${user._id}/spouse-email/verify`);
+      setUser((u) => ({ ...u, profile: data.user.profile, spousePending: null }));
+      toast.success('כתובת המייל של בן/בת הזוג אומתה');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה באימות');
+    } finally {
+      setSpouseBusy(false);
+    }
+  };
+  const unverifySpouse = async () => {
+    if (!window.confirm('לבטל את אימות בן/בת הזוג? הם לא יוכלו יותר להתחבר עם המייל שלהם.')) return;
+    setSpouseBusy(true);
+    try {
+      const { data } = await adminApi.post(`/users/${user._id}/spouse-email/unverify`);
+      setUser((u) => ({ ...u, profile: data.user.profile }));
+      toast.success('האימות בוטל');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה');
+    } finally {
+      setSpouseBusy(false);
+    }
+  };
 
   return (
     <ModalFrame title="פרופיל משתמש" onClose={onClose} wide>
@@ -696,6 +722,40 @@ function UserProfileModal({ user: initialUser, onClose }) {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Spouse login */}
+          {(p.spouseEmail || user.spousePending) && (
+            <div>
+              <h4 className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Heart className="h-3.5 w-3.5" />
+                כניסת בן/בת זוג
+              </h4>
+              <div className="rounded-xl bg-canvas border border-ink-100 p-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-ink">
+                    {p.spouseEmail ? p.spouseName : user.spousePending?.name}
+                  </div>
+                  <div className="text-xs text-ink-400 truncate" dir="ltr">
+                    {p.spouseEmail || user.spousePending?.email}
+                  </div>
+                  {p.spouseEmail && p.spouseEmailVerified ? (
+                    <span className="chip text-xs text-olive-700 bg-olive-50 mt-1">מאומת</span>
+                  ) : (
+                    <span className="chip text-xs text-ink-400 bg-ink-50 mt-1">ממתין לאימות</span>
+                  )}
+                </div>
+                {p.spouseEmail && p.spouseEmailVerified ? (
+                  <button onClick={unverifySpouse} disabled={spouseBusy} className="btn-outline !py-1.5 !px-3 text-xs !text-red-600 !border-red-200 hover:!bg-red-50 shrink-0">
+                    ביטול אימות
+                  </button>
+                ) : (
+                  <button onClick={verifySpouse} disabled={spouseBusy} className="btn-outline !py-1.5 !px-3 text-xs shrink-0">
+                    אימות ידני
+                  </button>
+                )}
               </div>
             </div>
           )}

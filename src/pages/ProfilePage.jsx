@@ -85,6 +85,15 @@ export default function ProfilePage() {
   const otpRefs = useRef([]);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
 
+  // Spouse login flow
+  const [showSpouseModal, setShowSpouseModal] = useState(false);
+  const [spouseStep, setSpouseStep] = useState(1);
+  const [spouseForm, setSpouseForm] = useState({ name: '', email: '' });
+  const [spouseLoading, setSpouseLoading] = useState(false);
+  const [spouseRemoving, setSpouseRemoving] = useState(false);
+  const spouseOtpRefs = useRef([]);
+  const [spouseOtpDigits, setSpouseOtpDigits] = useState(['', '', '', '', '', '']);
+
   const p = user?.profile || {};
   const fullName = [p.firstName, p.lastName].filter(Boolean).join(' ');
 
@@ -215,6 +224,68 @@ export default function ProfilePage() {
       toast.error(err?.response?.data?.message || 'קוד שגוי');
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  const closeSpouseModal = () => {
+    setShowSpouseModal(false);
+    setSpouseStep(1);
+    setSpouseForm({ name: '', email: '' });
+    setSpouseOtpDigits(['', '', '', '', '', '']);
+  };
+
+  const requestSpouseVerification = async () => {
+    setSpouseLoading(true);
+    try {
+      await api.post('/users/me/spouse-email', { spouseName: spouseForm.name, spouseEmail: spouseForm.email });
+      setSpouseStep(2);
+      toast.success(`נשלח קוד אל ${spouseForm.email}`);
+      setTimeout(() => spouseOtpRefs.current[0]?.focus(), 100);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה');
+    } finally {
+      setSpouseLoading(false);
+    }
+  };
+
+  const setSpouseOtpDigit = (idx, val) => {
+    const v = val.replace(/\D/g, '').slice(0, 1);
+    const next = [...spouseOtpDigits];
+    next[idx] = v;
+    setSpouseOtpDigits(next);
+    if (v && idx < 5) spouseOtpRefs.current[idx + 1]?.focus();
+  };
+  const onSpouseOtpKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !spouseOtpDigits[idx] && idx > 0) spouseOtpRefs.current[idx - 1]?.focus();
+  };
+
+  const verifySpouseVerification = async () => {
+    const otp = spouseOtpDigits.join('');
+    if (otp.length !== 6) { toast.error('קוד לא שלם'); return; }
+    setSpouseLoading(true);
+    try {
+      await api.post('/users/me/spouse-email/verify', { otp });
+      await refresh();
+      toast.success('בן/בת הזוג יכול/ה כעת להתחבר גם הוא/היא עם קוד למייל');
+      closeSpouseModal();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'קוד שגוי');
+    } finally {
+      setSpouseLoading(false);
+    }
+  };
+
+  const removeSpouse = async () => {
+    if (!window.confirm('להסיר את בן/בת הזוג? הוא/היא לא יוכלו להתחבר יותר דרך המייל שלהם.')) return;
+    setSpouseRemoving(true);
+    try {
+      await api.delete('/users/me/spouse-email');
+      await refresh();
+      toast.success('בן/בת הזוג הוסר/ה');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בהסרה');
+    } finally {
+      setSpouseRemoving(false);
     }
   };
 
@@ -539,6 +610,47 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Spouse login */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-bold text-ink flex items-center gap-2">
+            <Heart className="h-4 w-4 text-muted-700" />
+            כניסת בן/בת זוג
+          </h3>
+          {p.spouseEmail && p.spouseEmailVerified && (
+            <span className="chip-accent">
+              <ShieldCheck className="h-3 w-3" />
+              מאומת
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-ink-400 mb-4">
+          אפשרו לבן/בת הזוג שלכם להיכנס לחברותא 186 עם כתובת המייל שלו/שלה — קוד הכניסה יישלח לשניכם יחד, בלי
+          צורך ביצירת משתמש נפרד.
+        </p>
+        {p.spouseEmail && p.spouseEmailVerified ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-canvas border border-ink-100 p-4">
+            <div className="min-w-0">
+              <div className="font-semibold text-ink">{p.spouseName}</div>
+              <div className="text-xs text-ink-400 mt-0.5 truncate" dir="ltr">{p.spouseEmail}</div>
+            </div>
+            <button
+              onClick={removeSpouse}
+              disabled={spouseRemoving}
+              className="btn-outline !py-1.5 !px-3 text-xs !text-red-600 !border-red-200 hover:!bg-red-50 shrink-0"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              הסרה
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setShowSpouseModal(true)} className="btn-outline">
+            <Plus className="h-4 w-4" />
+            הוספת בן/בת זוג
+          </button>
+        )}
+      </div>
+
       {/* CV */}
       <div className="card p-6">
         <h3 className="font-bold text-ink mb-3 flex items-center gap-2">
@@ -767,6 +879,91 @@ export default function ProfilePage() {
                     </div>
                     <button onClick={verifyEmailChange} className="btn-primary w-full" disabled={emailLoading}>
                       {emailLoading ? 'מאמת…' : 'אימות ועדכון מייל'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Spouse login modal */}
+      <AnimatePresence>
+        {showSpouseModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
+            onClick={closeSpouseModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              className="card w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 border-b border-ink-100 flex items-center justify-between">
+                <h3 className="font-bold text-ink">הוספת בן/בת זוג</h3>
+                <button onClick={closeSpouseModal} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                {spouseStep === 1 ? (
+                  <>
+                    <div className="rounded-xl bg-accent-50 border border-accent-100 p-3 text-sm text-accent-800 flex gap-2">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      קוד אימות יישלח לכתובת של בן/בת הזוג. לאחר האימות, קוד כניסה יישלח תמיד לשתי הכתובות יחד.
+                    </div>
+                    <div>
+                      <label className="label">שם בן/בת הזוג</label>
+                      <input
+                        className="input"
+                        value={spouseForm.name}
+                        onChange={(e) => setSpouseForm((f) => ({ ...f, name: e.target.value }))}
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="label">כתובת מייל של בן/בת הזוג</label>
+                      <input
+                        type="email"
+                        dir="ltr"
+                        className="input"
+                        value={spouseForm.email}
+                        onChange={(e) => setSpouseForm((f) => ({ ...f, email: e.target.value }))}
+                      />
+                    </div>
+                    <button
+                      onClick={requestSpouseVerification}
+                      className="btn-primary w-full"
+                      disabled={spouseLoading || !spouseForm.name.trim() || !spouseForm.email.trim()}
+                    >
+                      {spouseLoading ? 'שולח…' : 'שליחת קוד אימות'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink-500">הזינו את הקוד שנשלח אל <strong dir="ltr">{spouseForm.email}</strong></p>
+                    <div className="flex justify-center gap-2" dir="ltr">
+                      {spouseOtpDigits.map((d, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => (spouseOtpRefs.current[i] = el)}
+                          value={d}
+                          onChange={(e) => setSpouseOtpDigit(i, e.target.value)}
+                          onKeyDown={(e) => onSpouseOtpKeyDown(i, e)}
+                          inputMode="numeric"
+                          maxLength={1}
+                          className="h-12 w-11 text-center text-xl font-bold rounded-xl border border-ink-200 bg-white text-ink focus:border-accent focus:ring-2 focus:ring-accent-100 outline-none"
+                        />
+                      ))}
+                    </div>
+                    <button onClick={verifySpouseVerification} className="btn-primary w-full" disabled={spouseLoading}>
+                      {spouseLoading ? 'מאמת…' : 'אימות והפעלה'}
                     </button>
                   </>
                 )}

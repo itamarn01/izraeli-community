@@ -185,7 +185,6 @@ function SubmissionsModal({ form, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-ink/60 backdrop-blur-sm"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -362,7 +361,6 @@ function FormEditorModal({ initial, orgs, onClose, onSaved }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-ink/60 backdrop-blur-sm"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 16 }}

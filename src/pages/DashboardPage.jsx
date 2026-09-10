@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck, Building2, CalendarDays, Clock, MapPin, Check, Compass } from 'lucide-react';
+import { Gift, Briefcase, MessagesSquare, ArrowLeft, TrendingUp, Sparkles, ShieldCheck, Building2, CalendarDays, Clock, MapPin, Check, Compass, Heart, X } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SkeletonStat, SkeletonGrid, SkeletonList } from '../components/skeletons/Skeletons.jsx';
@@ -71,6 +71,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {!user?.profile?.spouseEmail && <SpouseEmailBanner userId={user?._id} />}
 
       {nextEvent && <UpcomingEventBanner event={nextEvent} />}
 
@@ -199,6 +201,54 @@ function StatCard({ icon: Icon, label, value, hint, tone = 'accent', to }) {
     </Link>
   ) : (
     <div className="card p-5">{inner}</div>
+  );
+}
+
+// One-time nudge for existing members to add a spouse login email. Dismissal
+// is remembered per-account so it doesn't nag on every visit; it also stops
+// appearing on its own once a spouse email is actually set (see the caller).
+function SpouseEmailBanner({ userId }) {
+  const [dismissed, setDismissed] = useState(true);
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      setDismissed(localStorage.getItem(`spouseBannerDismissed_${userId}`) === '1');
+    } catch {
+      setDismissed(false);
+    }
+  }, [userId]);
+
+  if (dismissed) return null;
+
+  const dismiss = () => {
+    try { localStorage.setItem(`spouseBannerDismissed_${userId}`, '1'); } catch { /* ignore */ }
+    setDismissed(true);
+  };
+
+  return (
+    <div className="card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 border border-accent-100 bg-accent-50/40">
+      <div className="h-10 w-10 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center shrink-0">
+        <Heart className="h-5 w-5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-ink text-sm">חדש: גם בן/בת הזוג יכולים להיכנס למערכת</p>
+        <p className="text-xs text-ink-500 mt-0.5">
+          הוסיפו את כתובת המייל שלו/שלה בפרופיל — קוד הכניסה יישלח לשניכם יחד, בלי צורך ביצירת משתמש נפרד.
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <Link to="/app/profile" className="btn-primary !py-2 text-xs sm:text-sm whitespace-nowrap">
+          הוספה עכשיו
+        </Link>
+        <button
+          onClick={dismiss}
+          aria-label="סגירה"
+          className="h-8 w-8 rounded-lg hover:bg-ink-100 flex items-center justify-center text-ink-400 shrink-0"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 }
 

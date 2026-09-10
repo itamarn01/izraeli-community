@@ -321,14 +321,16 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
                   {event.childrenEnabled && (
                     <SummaryRow label="ילדים" value={childrenSummary(event.myRegistration)} />
                   )}
-                  <SummaryRow
-                    label="סיור"
-                    value={
-                      currentTour
-                        ? `${currentTour.tourTitle} · ${currentTour.time}${currentTour.forBoth ? ' (לשניכם)' : ''}`
-                        : 'לא נרשמתם לסיור'
-                    }
-                  />
+                  {event.toursEnabled && (
+                    <SummaryRow
+                      label="סיור"
+                      value={
+                        currentTour
+                          ? `${currentTour.tourTitle} · ${currentTour.time}${currentTour.forBoth ? ' (לשניכם)' : ''}`
+                          : 'לא נרשמתם לסיור'
+                      }
+                    />
+                  )}
                 </dl>
               </div>
 
@@ -617,10 +619,12 @@ function ConfirmationPanel({ event, onEdit, onClose }) {
         {formatEventHours(event) && <SummaryRow label="שעות" value={formatEventHours(event)} />}
         <SummaryRow label="בן/בת זוג" value={reg?.hasSpouse ? reg.spouseName : 'לא'} />
         {event.childrenEnabled && <SummaryRow label="ילדים" value={childrenSummary(reg)} />}
-        <SummaryRow
-          label="סיור"
-          value={tour ? `${tour.tourTitle} · ${tour.time}${tour.forBoth ? ' (לשניכם)' : ''}` : 'לא נרשמתם לסיור'}
-        />
+        {event.toursEnabled && (
+          <SummaryRow
+            label="סיור"
+            value={tour ? `${tour.tourTitle} · ${tour.time}${tour.forBoth ? ' (לשניכם)' : ''}` : 'לא נרשמתם לסיור'}
+          />
+        )}
       </dl>
 
       <CalendarButtons event={event} tour={tour} />
