@@ -8,6 +8,8 @@ import {
 import adminApi from '../../api/adminClient.js';
 import { timeAgo } from '../../utils/format.js';
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx';
+import { linkifyText } from '../../utils/linkify.jsx';
+import ImageLightbox from '../../components/common/ImageLightbox.jsx';
 
 const PAGE_SIZE = 25;
 const AVATAR_COLORS = ['#E74C3C','#9B59B6','#2980B9','#27AE60','#E67E22','#1ABC9C','#E91E63','#607D8B'];
@@ -34,6 +36,7 @@ export default function AdminPostsPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [orgs, setOrgs] = useState([]);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   useEffect(() => {
     adminApi.get('/organizations?limit=100').then(({ data }) => setOrgs(data.organizations || [])).catch(() => {});
@@ -191,8 +194,17 @@ export default function AdminPostsPage() {
                       {p.organization?.name && <span className="chip text-[10px]">{p.organization.name}</span>}
                     </div>
                     <div className="text-xs text-ink-400" dir="ltr">{p.author?.email} {p.author?.profile?.phone && `· ${p.author.profile.phone}`}</div>
-                    <p className="text-sm text-ink-700 mt-2 whitespace-pre-wrap leading-relaxed">{p.content}</p>
-                    {p.imageUrl && <img src={p.imageUrl} alt="" className="mt-2 max-h-40 rounded-xl border border-ink-100" />}
+                    <p className="text-sm text-ink-700 mt-2 whitespace-pre-wrap leading-relaxed">{linkifyText(p.content, `admin-post-${p._id}`)}</p>
+                    {p.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setLightboxSrc(p.imageUrl)}
+                        className="mt-2 block cursor-zoom-in"
+                        aria-label="הגדלת התמונה"
+                      >
+                        <img src={p.imageUrl} alt="" className="max-h-40 rounded-xl border border-ink-100" />
+                      </button>
+                    )}
                     <div className="mt-3 pt-3 border-t border-ink-100 flex items-center gap-4 text-xs text-ink-500">
                       <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{p.likes?.length || 0}</span>
                       <button
@@ -305,6 +317,10 @@ export default function AdminPostsPage() {
           </button>
         </div>
       )}
+
+      <AnimatePresence>
+        {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+      </AnimatePresence>
     </div>
   );
 }
@@ -365,7 +381,6 @@ function ComposeModal({ orgs, adminName, onClose, onCreated }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}

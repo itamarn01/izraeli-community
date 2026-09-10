@@ -280,7 +280,6 @@ function EventModal({ initial, orgs, onClose, onSaved }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -573,7 +572,6 @@ function RegistrationsModal({ event, onClose, onChanged }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}

@@ -177,7 +177,6 @@ export default function BroadcastModal({ audience, title, segmentPicker, onClose
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
-      onClick={() => stage !== 'progress' && onClose()}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}

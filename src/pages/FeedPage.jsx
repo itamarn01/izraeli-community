@@ -8,6 +8,8 @@ import { SkeletonList } from '../components/skeletons/Skeletons.jsx';
 import { timeAgo } from '../utils/format.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useImageUpload } from '../hooks/useImageUpload.js';
+import { linkifyText } from '../utils/linkify.jsx';
+import ImageLightbox from '../components/common/ImageLightbox.jsx';
 
 const IMAGE_MAX_MB = 5;
 const PAGE_SIZE = 10;
@@ -230,6 +232,7 @@ function PostCard({ post, currentUserId, currentUser, onLike, onComment, highlig
   const [showComments, setShowComments] = useState(false);
   const [draft, setDraft] = useState('');
   const [inlineDraft, setInlineDraft] = useState('');
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const liked = post.likes?.some((id) => id === currentUserId);
   const isAdmin = post.isAdminPost;
   const authorName = isAdmin
@@ -237,6 +240,7 @@ function PostCard({ post, currentUserId, currentUser, onLike, onComment, highlig
     : ([post.author?.profile?.firstName, post.author?.profile?.lastName].filter(Boolean).join(' ') || 'חבר קהילה');
 
   return (
+    <>
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -271,12 +275,17 @@ function PostCard({ post, currentUserId, currentUser, onLike, onComment, highlig
         </div>
       </header>
 
-      <p className="text-ink-700 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+      <p className="text-ink-700 whitespace-pre-wrap leading-relaxed">{linkifyText(post.content, `post-${post._id}`)}</p>
 
       {post.imageUrl && (
-        <div className="mt-3 rounded-xl overflow-hidden border border-ink-100 aspect-square">
+        <button
+          type="button"
+          onClick={() => setLightboxSrc(post.imageUrl)}
+          className="mt-3 block w-full rounded-xl overflow-hidden border border-ink-100 aspect-square cursor-zoom-in"
+          aria-label="הגדלת התמונה"
+        >
           <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
-        </div>
+        </button>
       )}
 
       <div className="mt-4 pt-3 border-t border-ink-100 flex items-center gap-4 text-sm">
@@ -380,5 +389,9 @@ function PostCard({ post, currentUserId, currentUser, onLike, onComment, highlig
         </div>
       )}
     </motion.article>
+    <AnimatePresence>
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+    </AnimatePresence>
+    </>
   );
 }
