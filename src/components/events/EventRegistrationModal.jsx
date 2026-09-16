@@ -610,7 +610,7 @@ function ConfirmationPanel({ event, onEdit, onClose }) {
 
       <div>
         <h3 className="text-lg font-bold text-ink">ההרשמה אושרה!</h3>
-        <p className="text-sm text-ink-500 mt-1">שלחנו לך מייל אישור עם כל הפרטים וקובץ ליומן.</p>
+        <p className="text-sm text-ink-500 mt-1">שלחנו לך מייל אישור עם כל הפרטים.</p>
       </div>
 
       <dl className="rounded-2xl border border-ink-100 bg-ink-50/50 p-4 text-right space-y-2 text-sm">
