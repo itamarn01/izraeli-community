@@ -12,6 +12,7 @@ import { SkeletonGrid } from '../components/skeletons/Skeletons.jsx';
 import { formatDate } from '../utils/format.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useImageUpload } from '../hooks/useImageUpload.js';
+import BenefitFormFields, { emptyBenefitForm, benefitFormPayload } from '../components/benefits/BenefitFormFields.jsx';
 
 const CATEGORIES = ['כללי', 'מסעדות', 'בריאות', 'ספורט', 'בידור', 'קניות', 'חינוך', 'נסיעות', 'טכנולוגיה', 'אחר'];
 const PAGE_SIZE = 12;
@@ -746,17 +747,21 @@ function BenefitFormModal({ onClose, onCreated }) {
   );
 }
 
+// Members fill in the benefit exactly as it will appear once the management
+// approves it — same fields, same image. No second round of data entry.
 function SuggestBenefitModal({ onClose }) {
-  const [form, setForm] = useState({ businessName: '', description: '', contactName: '', contactPhone: '', website: '' });
+  const [form, setForm] = useState(() => emptyBenefitForm());
   const [loading, setLoading] = useState(false);
+  const { upload, uploading } = useImageUpload();
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/benefits/suggest', form);
-      toast.success('ההצעה נשלחה להנהלה, תודה!');
+      await api.post('/benefits/suggest', benefitFormPayload(form));
+      toast.success('ההצעה נשלחה להנהלה, תודה! ההטבה תתפרסם מיד עם האישור.');
       onClose();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'שגיאה בשליחה');
@@ -771,50 +776,33 @@ function SuggestBenefitModal({ onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
-      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
-        className="card w-full max-w-md"
+        className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
+        <div className="sticky top-0 bg-white border-b border-ink-100 px-5 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
             <Send className="h-5 w-5 text-accent" />
-            <h3 className="font-bold text-ink">הצעת הטבה להנהלה</h3>
+            <h3 className="font-bold text-ink">הצעת הטבה</h3>
           </div>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-400">
+          <button onClick={onClose} aria-label="סגירה" className="h-8 w-8 rounded-lg hover:bg-ink-50 flex items-center justify-center text-ink-400">
             <X className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
-          <p className="text-sm text-ink-500">מכירים עסק שיכול להציע הטבה לחברי הקהילה? שלחו לנו את הפרטים ונבדוק.</p>
-          <div>
-            <label className="label">שם העסק *</label>
-            <input className="input" value={form.businessName} onChange={(e) => set('businessName', e.target.value)} required />
-          </div>
-          <div>
-            <label className="label">תיאור ההטבה המוצעת *</label>
-            <textarea rows={3} className="input" value={form.description} onChange={(e) => set('description', e.target.value)} required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">שם איש קשר</label>
-              <input className="input" value={form.contactName} onChange={(e) => set('contactName', e.target.value)} />
-            </div>
-            <div>
-              <label className="label">טלפון</label>
-              <input dir="ltr" className="input" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <label className="label">אתר (אופציונלי)</label>
-            <input dir="ltr" className="input" placeholder="https://..." value={form.website} onChange={(e) => set('website', e.target.value)} />
-          </div>
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? 'שולח…' : 'שליחת ההצעה'}
+          <p className="text-sm text-ink-500 leading-relaxed">
+            מלאו את פרטי ההטבה כפי שתרצו שהיא תופיע בעמוד ההטבות. ההצעה נשלחת להנהלה,
+            ומרגע שתאושר היא מתפרסמת אוטומטית לכל חברי הקהילה.
+          </p>
+
+          <BenefitFormFields form={form} onChange={set} onUpload={upload} uploading={uploading} />
+
+          <button type="submit" className="btn-primary w-full" disabled={loading || uploading}>
+            {loading ? 'שולח…' : 'שליחת ההצעה לאישור'}
           </button>
         </form>
       </motion.div>

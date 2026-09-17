@@ -505,6 +505,9 @@ function RegistrationsModal({ event, onClose, onChanged }) {
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [segment, setSegment] = useState('registered');
   const [slotId, setSlotId] = useState('');
+  // Which registration state the table is showing: who is coming, who said no,
+  // and who pulled out after registering.
+  const [statusTab, setStatusTab] = useState('registered');
 
   const load = () => {
     setLoading(true);
@@ -518,7 +521,7 @@ function RegistrationsModal({ event, onClose, onChanged }) {
   useEffect(load, [event._id]);
 
   const registrations = useMemo(() => {
-    const rows = (data?.registrations || []).filter((r) => r.status === 'registered');
+    const rows = (data?.registrations || []).filter((r) => r.status === statusTab);
     if (!q.trim()) return rows;
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
@@ -528,7 +531,7 @@ function RegistrationsModal({ event, onClose, onChanged }) {
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(needle));
     });
-  }, [data, q]);
+  }, [data, q, statusTab]);
 
   // The xlsx arrives as a blob on an authenticated request, so it is downloaded
   // through an object URL rather than a plain link.
@@ -553,7 +556,8 @@ function RegistrationsModal({ event, onClose, onChanged }) {
 
   const removeRegistration = async (reg) => {
     const name = [reg.user?.profile?.firstName, reg.user?.profile?.lastName].filter(Boolean).join(' ');
-    if (!window.confirm(`להסיר את ההרשמה של ${name || 'המשתמש'}? המקומות שנתפסו ישוחררו.`)) return;
+    const note = reg.status === 'registered' ? ' המקומות שנתפסו ישוחררו.' : ' הרישום יימחק מהרשימה.';
+    if (!window.confirm(`להסיר את ההרשמה של ${name || 'המשתמש'}?${note}`)) return;
     try {
       await adminApi.delete(`/events/${event._id}/registrations/${reg._id}`);
       toast.success('ההרשמה הוסרה');
@@ -671,6 +675,30 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                 </section>
               )}
 
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { value: 'registered', label: 'מגיעים', count: stats.registrations },
+                  { value: 'declined', label: 'סימנו שאינם מגיעים', count: stats.declined },
+                  { value: 'cancelled', label: 'ביטלו הרשמה', count: stats.cancelled },
+                ].map((t) => (
+                  <button
+                    key={t.value}
+                    onClick={() => {
+                      setStatusTab(t.value);
+                      // Line the mail audience up with what is on screen, so
+                      // "שליחת מייל" targets the list the admin is looking at.
+                      setSegment(t.value);
+                    }}
+                    aria-pressed={statusTab === t.value}
+                    className={`rounded-xl px-3.5 py-2 text-sm font-medium transition ${
+                      statusTab === t.value ? 'bg-accent text-white' : 'bg-ink-50 text-ink-500 hover:bg-ink-100'
+                    }`}
+                  >
+                    {t.label} ({t.count || 0})
+                  </button>
+                ))}
+              </div>
+
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
                 <input
@@ -682,9 +710,24 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                 />
               </div>
 
+              {statusTab !== 'registered' && registrations.length > 0 && (
+                <p className="text-xs text-ink-500 bg-ink-50 rounded-xl px-3 py-2">
+                  {statusTab === 'declined'
+                    ? 'אנשים שסימנו במפורש שאינם מגיעים.'
+                    : 'אנשים שנרשמו ואז ביטלו. המקומות שלהם שוחררו.'}{' '}
+                  ניתן לשלוח להם מייל דרך ״שליחת מייל״ — קהל היעד כבר מכוון לרשימה הזו.
+                </p>
+              )}
+
               {registrations.length === 0 ? (
                 <div className="card p-10 text-center text-ink-400">
-                  {q ? 'לא נמצאו תוצאות.' : 'עדיין אין נרשמים לאירוע.'}
+                  {q
+                    ? 'לא נמצאו תוצאות.'
+                    : statusTab === 'declined'
+                      ? 'אף אחד לא סימן שאינו מגיע.'
+                      : statusTab === 'cancelled'
+                        ? 'אין ביטולים לאירוע הזה.'
+                        : 'עדיין אין נרשמים לאירוע.'}
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-ink-100">
@@ -692,9 +735,15 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                     <thead className="bg-ink-50 text-ink-500">
                       <tr>
                         {[
-                          'שם מלא', 'גדוד', 'טלפון', 'מייל', 'בן/בת זוג',
-                          ...(event.childrenEnabled ? ['ילדים'] : []),
-                          'סיור', 'משתתפים', '',
+                          'שם מלא', 'גדוד', 'טלפון', 'מייל',
+                          ...(statusTab === 'registered'
+                            ? [
+                                'בן/בת זוג',
+                                ...(event.childrenEnabled ? ['ילדים'] : []),
+                                'סיור', 'משתתפים',
+                              ]
+                            : ['תאריך העדכון']),
+                          '',
                         ].map((h) => (
                           <th key={h} scope="col" className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">
                             {h}
@@ -711,23 +760,31 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                           <td className="px-3 py-2.5 text-ink-500 whitespace-nowrap">{r.user?.profile?.gedud || '—'}</td>
                           <td className="px-3 py-2.5 text-ink-500 whitespace-nowrap" dir="ltr">{r.user?.profile?.phone || '—'}</td>
                           <td className="px-3 py-2.5 text-ink-500" dir="ltr">{r.user?.email}</td>
-                          <td className="px-3 py-2.5 text-ink-500">{r.hasSpouse ? r.spouseName || 'כן' : '—'}</td>
-                          {event.childrenEnabled && (
-                            <td className="px-3 py-2.5 text-ink-500">
-                              {r.childrenAttending?.length ? r.childrenAttending.map((c) => c.name).join(', ') : '—'}
+                          {statusTab === 'registered' ? (
+                            <>
+                              <td className="px-3 py-2.5 text-ink-500">{r.hasSpouse ? r.spouseName || 'כן' : '—'}</td>
+                              {event.childrenEnabled && (
+                                <td className="px-3 py-2.5 text-ink-500">
+                                  {r.childrenAttending?.length ? r.childrenAttending.map((c) => c.name).join(', ') : '—'}
+                                </td>
+                              )}
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                {r.tour ? (
+                                  <span className="chip-accent">
+                                    {r.tour.time}
+                                    {r.tour.forBoth ? ' · זוג' : ''}
+                                  </span>
+                                ) : (
+                                  <span className="text-ink-300">—</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5 text-ink-500">{r.seats}</td>
+                            </>
+                          ) : (
+                            <td className="px-3 py-2.5 text-ink-500 whitespace-nowrap">
+                              {r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('he-IL') : '—'}
                             </td>
                           )}
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            {r.tour ? (
-                              <span className="chip-accent">
-                                {r.tour.time}
-                                {r.tour.forBoth ? ' · זוג' : ''}
-                              </span>
-                            ) : (
-                              <span className="text-ink-300">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-ink-500">{r.seats}</td>
                           <td className="px-3 py-2.5">
                             <button
                               onClick={() => removeRegistration(r)}
@@ -781,6 +838,8 @@ function EventSegmentPicker({ event, stats, segment, slotId, onSegment, onSlot }
     { value: 'registered', label: 'כל הנרשמים לאירוע' },
     ...(event.toursEnabled ? [{ value: 'tour', label: 'נרשמי הסיורים' }] : []),
     ...(event.toursEnabled && slots.length ? [{ value: 'slot', label: 'לפי שעת סיור' }] : []),
+    { value: 'declined', label: `סימנו שאינם מגיעים (${stats?.declined || 0})` },
+    { value: 'cancelled', label: `ביטלו את ההרשמה (${stats?.cancelled || 0})` },
     { value: 'not_registered', label: 'טרם נרשמו' },
   ];
 
@@ -806,6 +865,12 @@ function EventSegmentPicker({ event, stats, segment, slotId, onSegment, onSlot }
           <p className="mt-1 text-xs text-ink-400">
             מי שטרם ענה או שביטל הרשמה. מי שסימן במפורש ״לא מגיע״ לא ייכלל.
           </p>
+        )}
+        {segment === 'declined' && (
+          <p className="mt-1 text-xs text-ink-400">מי שסימן במפורש שאינו מגיע לאירוע.</p>
+        )}
+        {segment === 'cancelled' && (
+          <p className="mt-1 text-xs text-ink-400">מי שנרשם ולאחר מכן ביטל את ההרשמה.</p>
         )}
       </div>
 
