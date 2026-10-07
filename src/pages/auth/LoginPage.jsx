@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Mail, ShieldCheck } from 'lucide-react';
+import { Mail, ShieldCheck, AlertCircle, UserPlus, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import AuthShell from '../../components/common/AuthShell.jsx';
 import PasswordInput from '../../components/common/PasswordInput.jsx';
@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [mode, setMode] = useState('password'); // 'password' | 'email-request' | 'email-verify'
   const [form, setForm] = useState({ email: '', password: '' });
   const [otpEmail, setOtpEmail] = useState('');
+  // Why the code could not be sent, kept on screen (a toast vanishes before
+  // people read it) so an unregistered visitor is told what to do instead.
+  const [otpError, setOtpError] = useState(null);
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -48,6 +51,7 @@ export default function LoginPage() {
   const onRequestOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setOtpError(null);
     try {
       await loginOtpRequest(otpEmail);
       toast.success('קוד נשלח למייל שלך');
@@ -56,7 +60,12 @@ export default function LoginPage() {
       setMode('email-verify');
       setTimeout(() => refs.current[0]?.focus(), 100);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'שגיאה בשליחת קוד');
+      // Stay on this screen: advancing to "we sent you a code" when nothing
+      // was sent is exactly the dead end this replaces.
+      setOtpError({
+        code: err?.response?.data?.code || null,
+        message: err?.response?.data?.message || 'שגיאה בשליחת הקוד. נסו שוב בעוד מעט או התחברו עם סיסמה.',
+      });
     } finally {
       setLoading(false);
     }
@@ -109,8 +118,8 @@ export default function LoginPage() {
       await loginOtpRequest(otpEmail);
       toast.success('נשלח קוד חדש');
       setCooldown(45);
-    } catch {
-      toast.error('שגיאה בשליחת קוד');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בשליחת קוד');
     }
   };
 
@@ -163,7 +172,7 @@ export default function LoginPage() {
 
           <button
             type="button"
-            onClick={() => { setOtpEmail(form.email); setMode('email-request'); }}
+            onClick={() => { setOtpEmail(form.email); setOtpError(null); setMode('email-request'); }}
             className="btn-outline w-full flex items-center justify-center gap-2"
           >
             <Mail className="h-4 w-4" aria-hidden />
@@ -201,13 +210,35 @@ export default function LoginPage() {
                   className="input pr-10"
                   placeholder="הכנס את האימייל שלך"
                   value={otpEmail}
-                  onChange={(e) => setOtpEmail(e.target.value)}
+                  onChange={(e) => { setOtpEmail(e.target.value); setOtpError(null); }}
                   autoComplete="email"
                   autoFocus
                   required
                 />
               </div>
             </div>
+
+            {otpError && (
+              <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 space-y-3">
+                <p className="flex items-start gap-2 text-sm text-amber-900 leading-relaxed">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{otpError.message}</span>
+                </p>
+                {otpError.code === 'not_registered' && (
+                  <Link to="/join" className="btn-primary w-full !py-2 text-sm">
+                    <UserPlus className="h-4 w-4" aria-hidden />
+                    הרשמה למערכת עם קוד הארגון
+                  </Link>
+                )}
+                {otpError.code === 'email_not_verified' && (
+                  <button type="button" onClick={() => setMode('password')} className="btn-primary w-full !py-2 text-sm">
+                    <KeyRound className="h-4 w-4" aria-hidden />
+                    כניסה עם סיסמה
+                  </button>
+                )}
+              </div>
+            )}
+
             <button type="submit" className="btn-primary w-full" disabled={loading}>
               {loading ? 'שולח…' : 'שלח קוד אימות'}
             </button>
@@ -220,6 +251,14 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* The way in for anyone who has not registered yet — shown up front,
+              not only after a failed attempt. */}
+          <div className="text-center text-sm text-ink-400">
+            עדיין לא נרשמתם?{' '}
+            <Link to="/join" className="text-accent hover:underline font-semibold">
+              הרשמה עם קוד הארגון
+            </Link>
+          </div>
           <div className="text-center">
             <Link to="/" className="text-xs text-ink-400 hover:text-accent hover:underline">
               חזרה לדף הבית

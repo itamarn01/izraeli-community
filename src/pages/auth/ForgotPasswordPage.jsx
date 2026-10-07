@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Mail, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Mail, ArrowLeft, ShieldCheck, AlertCircle, UserPlus, KeyRound } from 'lucide-react';
 import api from '../../api/client';
 import AuthShell from '../../components/common/AuthShell.jsx';
 import PasswordInput from '../../components/common/PasswordInput.jsx';
@@ -15,6 +15,9 @@ export default function ForgotPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  // Why the code could not be sent, kept on screen rather than in a toast —
+  // same reason as on the login screen.
+  const [sendError, setSendError] = useState(null);
   const refs = useRef([]);
 
   useEffect(() => {
@@ -31,13 +34,18 @@ export default function ForgotPasswordPage() {
     e?.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
+    setSendError(null);
     try {
       await api.post('/auth/forgot-password', { email });
-      toast.success('אם הכתובת קיימת — נשלח קוד לאיפוס');
+      toast.success('נשלח קוד לאיפוס הסיסמה');
       setStep(2);
       setCooldown(45);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'שגיאה בשליחת הקוד');
+      const message = err?.response?.data?.message || 'שגיאה בשליחת הקוד';
+      // Step 1 keeps the reason on screen; a resend from step 2 has no banner
+      // to show it in, so that one still gets a toast.
+      setSendError({ code: err?.response?.data?.code || null, message });
+      if (step === 2) toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -96,13 +104,35 @@ export default function ForgotPasswordPage() {
                 dir="ltr"
                 className="input pr-10"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setSendError(null); }}
                 placeholder="name@example.com"
                 required
                 autoFocus
               />
             </div>
           </div>
+
+          {sendError && (
+            <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 space-y-3">
+              <p className="flex items-start gap-2 text-sm text-amber-900 leading-relaxed">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+                <span>{sendError.message}</span>
+              </p>
+              {sendError.code === 'not_registered' && (
+                <Link to="/join" className="btn-primary w-full !py-2 text-sm">
+                  <UserPlus className="h-4 w-4" aria-hidden />
+                  הרשמה למערכת עם קוד הארגון
+                </Link>
+              )}
+              {sendError.code === 'spouse_email' && (
+                <Link to="/login" className="btn-primary w-full !py-2 text-sm">
+                  <KeyRound className="h-4 w-4" aria-hidden />
+                  כניסה עם קוד לאימייל
+                </Link>
+              )}
+            </div>
+          )}
+
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             {loading ? 'שולח…' : 'שליחת קוד'}
             <ArrowLeft className="h-4 w-4" />
@@ -111,6 +141,13 @@ export default function ForgotPasswordPage() {
             נזכרת?{' '}
             <Link to="/login" className="text-accent hover:underline font-semibold">
               חזרה לכניסה
+            </Link>
+          </div>
+          {/* The way in for anyone who has not registered yet. */}
+          <div className="text-center text-sm text-ink-400">
+            עדיין לא נרשמתם?{' '}
+            <Link to="/join" className="text-accent hover:underline font-semibold">
+              הרשמה עם קוד הארגון
             </Link>
           </div>
         </form>
