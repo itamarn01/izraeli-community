@@ -5,6 +5,7 @@ import {
   CalendarDays, Plus, X, Pencil, Trash2, Users, Compass, ImagePlus, Loader2,
   FileSpreadsheet, ExternalLink, Search, Clock, Copy, ChevronDown, ChevronUp,
   UserMinus, AlertCircle, Megaphone,
+  Hourglass, ArrowUp, ArrowDown, UserPlus,
 } from 'lucide-react';
 import adminApi from '../../api/adminClient';
 import RichTextEditor from '../../components/common/RichTextEditor.jsx';
@@ -194,6 +195,8 @@ function EventModal({ initial, orgs, onClose, onSaved }) {
     childrenEnabled: initial?.childrenEnabled ?? false,
     childrenMinAge: initial?.childrenMinAge ?? 0,
     autoPopup: initial?.autoPopup ?? true,
+    waitlistEnabled: initial?.waitlistEnabled ?? true,
+    waitlistAutoPromote: initial?.waitlistAutoPromote ?? true,
     organization: initial?.organization?._id || initial?.organization || '',
   });
   const [descriptionHtml, setDescriptionHtml] = useState(initial?.descriptionHtml || '');
@@ -438,6 +441,7 @@ function EventModal({ initial, orgs, onClose, onSaved }) {
               { key: 'autoPopup', label: 'פתיחת פופאפ ההרשמה אוטומטית בכניסה למערכת', hint: 'עד שהמשתמש נרשם או מסמן שאינו מגיע.' },
               { key: 'toursEnabled', label: 'האירוע כולל סיורים', hint: 'הגדירו למטה כותרת, שעות ומכסה לכל שעה.' },
               { key: 'childrenEnabled', label: 'לאפשר הגעה עם ילדים', hint: 'בפופאפ יוצג ליוזר לבחור אילו מהילדים בפרופיל שלו מגיעים.' },
+              { key: 'waitlistEnabled', label: 'רשימת המתנה כשהאירוע מתמלא', hint: 'במקום לדחות נרשמים חדשים, הם ייכנסו לתור לפי סדר ההרשמה.' },
             ].map((s) => (
               <label key={s.key} className="flex items-start gap-3 rounded-xl border border-ink-100 p-3 cursor-pointer hover:bg-ink-50/60">
                 <input
@@ -453,6 +457,27 @@ function EventModal({ initial, orgs, onClose, onSaved }) {
               </label>
             ))}
           </div>
+
+          {form.waitlistEnabled && (
+            <label className="flex items-start gap-3 rounded-xl border border-accent-100 bg-accent-50/40 p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-[#CB8333]"
+                checked={form.waitlistAutoPromote}
+                onChange={(e) => set('waitlistAutoPromote', e.target.checked)}
+              />
+              <span>
+                <span className="block text-sm font-semibold text-ink">
+                  הכנסה אוטומטית מרשימת ההמתנה כשמתפנה מקום
+                </span>
+                <span className="block text-xs text-ink-500 mt-0.5 leading-relaxed">
+                  הבא בתור נכנס עם כל המשפחה שרשם — או ממתין עד שיתפנו מספיק מקומות לכולם.
+                  משפחה לעולם לא תפוצל, והתור נשמר: מי שלא נכנס חוסם את מי שאחריו ולא מדלגים עליו.
+                  בכיבוי — אף אחד לא נכנס לבד, ואתם מכניסים ידנית ממסך הנרשמים.
+                </span>
+              </span>
+            </label>
+          )}
 
           {form.childrenEnabled && (
             <div>
@@ -554,9 +579,75 @@ function RegistrationsModal({ event, onClose, onChanged }) {
     }
   };
 
+  // ── Waitlist actions ──────────────────────────────────────────────
+  // Each one reloads the panel afterwards: promoting changes seat counts,
+  // the queue order and the attendee list all at once.
+  const [waitlistBusy, setWaitlistBusy] = useState(null);
+
+  const afterWaitlistChange = () => { load(); onChanged?.(); };
+
+  const promoteOne = async (reg, { force = false } = {}) => {
+    setWaitlistBusy(reg._id);
+    try {
+      const { data: res } = await adminApi.post(
+        `/events/${event._id}/registrations/${reg._id}/promote`,
+        force ? { force: true } : {}
+      );
+      toast.success('הוכנס/ה לאירוע — נשלח מייל עדכון');
+      afterWaitlistChange();
+      return res;
+    } catch (err) {
+      const body = err?.response?.data;
+      // The usual refusal is "the party does not fit"; offer the override
+      // rather than leaving the admin stuck.
+      if (err?.response?.status === 409 && body?.needed) {
+        if (window.confirm(`${body.message}\n\nלהכניס בכל זאת, מעבר לקיבולת?`)) {
+          return promoteOne(reg, { force: true });
+        }
+      } else {
+        toast.error(body?.message || 'שגיאה בהכנסה לאירוע');
+      }
+      return null;
+    } finally {
+      setWaitlistBusy(null);
+    }
+  };
+
+  const moveInQueue = async (reg, direction) => {
+    setWaitlistBusy(reg._id);
+    try {
+      await adminApi.post(`/events/${event._id}/registrations/${reg._id}/waitlist-move`, { direction });
+      afterWaitlistChange();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה בשינוי הסדר');
+    } finally {
+      setWaitlistBusy(null);
+    }
+  };
+
+  const promoteNext = async () => {
+    if (!window.confirm('להכניס את הבאים בתור לכל המקומות שהתפנו?')) return;
+    try {
+      const { data: res } = await adminApi.post(`/events/${event._id}/waitlist/promote-next`);
+      toast.success(
+        res.promoted
+          ? `${res.promoted} נרשמים הוכנסו לאירוע`
+          : 'אף אחד לא הוכנס — אין מספיק מקומות פנויים למשפחה הבאה בתור'
+      );
+      afterWaitlistChange();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'שגיאה');
+    }
+  };
+
   const removeRegistration = async (reg) => {
     const name = [reg.user?.profile?.firstName, reg.user?.profile?.lastName].filter(Boolean).join(' ');
-    const note = reg.status === 'registered' ? ' המקומות שנתפסו ישוחררו.' : ' הרישום יימחק מהרשימה.';
+    const note =
+      reg.status === 'registered'
+        ? ' המקומות שנתפסו ישוחררו.'
+        : reg.status === 'waitlisted'
+          ? ' הוא/היא יוסרו מרשימת ההמתנה.'
+          : ' הרישום יימחק מהרשימה.';
     if (!window.confirm(`להסיר את ההרשמה של ${name || 'המשתמש'}?${note}`)) return;
     try {
       await adminApi.delete(`/events/${event._id}/registrations/${reg._id}`);
@@ -624,6 +715,13 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                 {event.childrenEnabled && (
                   <StatTile icon={Users} label="ילדים רשומים" value={stats.children} tone="muted" />
                 )}
+                {(stats.waitlisted > 0 || event.waitlistEnabled) && (
+                  <StatTile
+                    icon={Hourglass}
+                    label={`ברשימת המתנה (${stats.waitlistSeats || 0} מקומות)`}
+                    value={stats.waitlisted || 0}
+                  />
+                )}
               </div>
 
               {(stats.declined > 0 || stats.cancelled > 0 || stats.seatsLeft !== null) && (
@@ -680,6 +778,9 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                   { value: 'registered', label: 'מגיעים', count: stats.registrations },
                   { value: 'declined', label: 'סימנו שאינם מגיעים', count: stats.declined },
                   { value: 'cancelled', label: 'ביטלו הרשמה', count: stats.cancelled },
+                  ...(event.waitlistEnabled || stats.waitlisted
+                    ? [{ value: 'waitlisted', label: 'רשימת המתנה', count: stats.waitlisted }]
+                    : []),
                 ].map((t) => (
                   <button
                     key={t.value}
@@ -687,7 +788,9 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                       setStatusTab(t.value);
                       // Line the mail audience up with what is on screen, so
                       // "שליחת מייל" targets the list the admin is looking at.
-                      setSegment(t.value);
+                      // The queue has no broadcast segment of its own, so the
+                      // audience stays on whatever it was.
+                      if (t.value !== 'waitlisted') setSegment(t.value);
                     }}
                     aria-pressed={statusTab === t.value}
                     className={`rounded-xl px-3.5 py-2 text-sm font-medium transition ${
@@ -710,6 +813,26 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                 />
               </div>
 
+              {statusTab === 'waitlisted' ? (
+                <WaitlistPanel
+                  rows={(data?.waitlist || []).filter((r) => {
+                    if (!q.trim()) return true;
+                    const needle = q.trim().toLowerCase();
+                    const name = [r.user?.profile?.firstName, r.user?.profile?.lastName].filter(Boolean).join(' ');
+                    return [name, r.spouseName, r.user?.email, r.user?.profile?.phone, r.user?.profile?.gedud]
+                      .filter(Boolean)
+                      .some((v) => String(v).toLowerCase().includes(needle));
+                  })}
+                  stats={stats}
+                  autoPromote={event.waitlistAutoPromote}
+                  busyId={waitlistBusy}
+                  onPromote={promoteOne}
+                  onMove={moveInQueue}
+                  onRemove={removeRegistration}
+                  onPromoteNext={promoteNext}
+                />
+              ) : (
+              <>
               {statusTab !== 'registered' && registrations.length > 0 && (
                 <p className="text-xs text-ink-500 bg-ink-50 rounded-xl px-3 py-2">
                   {statusTab === 'declined'
@@ -800,6 +923,8 @@ function RegistrationsModal({ event, onClose, onChanged }) {
                   </table>
                 </div>
               )}
+              </>
+              )}
             </>
           )}
         </div>
@@ -828,6 +953,146 @@ function RegistrationsModal({ event, onClose, onChanged }) {
         />
       )}
     </motion.div>
+  );
+}
+
+/**
+ * The waiting queue. Order is the whole point here, so the table leads with
+ * the place in line and the party size — the two numbers that decide who gets
+ * in next — and every row can be moved, admitted or dropped.
+ */
+function WaitlistPanel({ rows, stats, autoPromote, busyId, onPromote, onMove, onRemove, onPromoteNext }) {
+  const seatsLeft = stats?.seatsLeft;
+  const next = rows[0];
+  // The single most useful sentence on this screen: why the queue is or is not
+  // moving right now.
+  const blocked = next && seatsLeft !== null && seatsLeft !== undefined && next.seats > seatsLeft;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-start gap-3 rounded-xl border border-ink-100 bg-ink-50/60 p-3.5">
+        <Hourglass className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-[260px] text-xs text-ink-600 leading-relaxed">
+          {rows.length === 0 ? (
+            'אין ממתינים כרגע.'
+          ) : (
+            <>
+              <strong className="text-ink">{stats.waitlisted}</strong> ממתינים,
+              שמבקשים יחד <strong className="text-ink">{stats.waitlistSeats}</strong> מקומות.
+              {seatsLeft !== null && <> כרגע פנויים <strong className="text-ink">{seatsLeft}</strong>.</>}
+              <br />
+              {blocked ? (
+                <span className="text-amber-800">
+                  הבא בתור צריך {next.seats} מקומות ואין מספיק — ממתינים עד שיתפנו, כדי לא לפצל את המשפחה.
+                  אפשר להכניס ידנית, או להגדיל את קיבולת האירוע.
+                </span>
+              ) : autoPromote ? (
+                'הכנסה אוטומטית פעילה — כשמתפנים מקומות, הבא בתור נכנס עם כל המשפחה שרשם.'
+              ) : (
+                <span className="text-amber-800">
+                  הכנסה אוטומטית כבויה לאירוע הזה — אף אחד לא ייכנס מעצמו. ההכנסה ידנית מכאן.
+                </span>
+              )}
+            </>
+          )}
+        </div>
+        {rows.length > 0 && (
+          <button onClick={onPromoteNext} className="btn-outline !py-2 text-sm shrink-0">
+            <UserPlus className="h-4 w-4" />
+            הכנסת הבאים בתור
+          </button>
+        )}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="card p-10 text-center text-ink-400">אין ממתינים ברשימה.</div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-ink-100">
+          <table className="w-full text-sm">
+            <thead className="bg-ink-50 text-ink-500">
+              <tr>
+                {['#', 'שם מלא', 'גדוד', 'טלפון', 'מייל', 'בן/בת זוג', 'ילדים', 'מקומות', 'בתור מאז', 'פעולות'].map((h) => (
+                  <th key={h} scope="col" className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-100">
+              {rows.map((r, i) => {
+                const busy = busyId === r._id;
+                const fits = seatsLeft === null || seatsLeft === undefined || r.seats <= seatsLeft;
+                return (
+                  <tr key={r._id} className={`hover:bg-ink-50/50 ${busy ? 'opacity-50' : ''}`}>
+                    <td className="px-3 py-2.5">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-accent-50 text-accent-700 text-xs font-bold">
+                        {r.position}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 font-semibold text-ink whitespace-nowrap">
+                      {[r.user?.profile?.firstName, r.user?.profile?.lastName].filter(Boolean).join(' ') || '—'}
+                    </td>
+                    <td className="px-3 py-2.5 text-ink-500 whitespace-nowrap">{r.user?.profile?.gedud || '—'}</td>
+                    <td className="px-3 py-2.5 text-ink-500 whitespace-nowrap" dir="ltr">{r.user?.profile?.phone || '—'}</td>
+                    <td className="px-3 py-2.5 text-ink-500" dir="ltr">{r.user?.email}</td>
+                    <td className="px-3 py-2.5 text-ink-500">{r.hasSpouse ? r.spouseName || 'כן' : '—'}</td>
+                    <td className="px-3 py-2.5 text-ink-500">
+                      {r.childrenAttending?.length ? r.childrenAttending.map((c) => c.name).join(', ') : '—'}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={`font-bold ${fits ? 'text-olive-700' : 'text-amber-700'}`}>{r.seats}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-ink-400 whitespace-nowrap">
+                      {r.waitlistedAt ? new Date(r.waitlistedAt).toLocaleDateString('he-IL') : '—'}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onMove(r, 'up')}
+                          disabled={busy || i === 0}
+                          aria-label="העלאה בתור"
+                          title="העלאה בתור"
+                          className="h-8 w-8 rounded-lg text-ink-400 hover:text-ink hover:bg-ink-100 flex items-center justify-center disabled:opacity-30"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onMove(r, 'down')}
+                          disabled={busy || i === rows.length - 1}
+                          aria-label="הורדה בתור"
+                          title="הורדה בתור"
+                          className="h-8 w-8 rounded-lg text-ink-400 hover:text-ink hover:bg-ink-100 flex items-center justify-center disabled:opacity-30"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onPromote(r)}
+                          disabled={busy}
+                          title={fits ? 'הכנסה לאירוע' : `נדרשים ${r.seats} מקומות — יוצע אישור חריגה`}
+                          className="h-8 rounded-lg px-2.5 text-xs font-semibold bg-olive-50 text-olive-800 hover:bg-olive-100 inline-flex items-center gap-1 disabled:opacity-50"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" />
+                          הכנסה
+                        </button>
+                        <button
+                          onClick={() => onRemove(r)}
+                          disabled={busy}
+                          aria-label="הסרה מרשימת ההמתנה"
+                          title="הסרה מרשימת ההמתנה"
+                          className="h-8 w-8 rounded-lg text-ink-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center"
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 

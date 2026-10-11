@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  CalendarDays, Clock, MapPin, Check, Compass, Users, ArrowLeft, Link2, CalendarX2,
+  CalendarDays, Clock, MapPin, Check, Compass, Users, ArrowLeft, Link2, CalendarX2, Hourglass,
 } from 'lucide-react';
 import api from '../api/client';
 import { SkeletonGrid } from '../components/skeletons/Skeletons.jsx';
@@ -20,9 +20,26 @@ function StatusBadge({ event }) {
       </span>
     );
   }
+  if (reg?.status === 'waitlisted') {
+    return (
+      <span className="chip !bg-amber-100 !text-amber-900">
+        <Hourglass className="h-3.5 w-3.5" />
+        ברשימת המתנה{reg.waitlistPosition ? ` · ${reg.waitlistPosition}` : ''}
+      </span>
+    );
+  }
   if (event.isPast) return <span className="chip">הסתיים</span>;
   if (event.isRegistrationClosed) return <span className="chip">ההרשמה סגורה</span>;
-  if (event.isFull) return <span className="chip !bg-accent-50 !text-accent-700">מלא</span>;
+  if (event.isFull) {
+    return event.canJoinWaitlist ? (
+      <span className="chip !bg-amber-100 !text-amber-900">
+        <Hourglass className="h-3.5 w-3.5" />
+        מלא · רשימת המתנה
+      </span>
+    ) : (
+      <span className="chip !bg-accent-50 !text-accent-700">מלא</span>
+    );
+  }
   const countdown = countdownLabel(event.date);
   return countdown ? <span className="chip-accent">{countdown}</span> : null;
 }
