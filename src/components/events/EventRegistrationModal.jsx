@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   X, CalendarDays, Clock, MapPin, Check, Loader2, Users, Compass, Baby,
-  CalendarPlus, Download, PartyPopper, AlertCircle, Trash2, Pencil,
+  CalendarPlus, Download, PartyPopper, AlertCircle, Trash2, Pencil, Hourglass,
 } from 'lucide-react';
 import api from '../../api/client';
 import { formatEventDate, formatEventHours, googleCalendarUrl, icsUrl } from '../../utils/eventDate.js';
@@ -109,24 +109,30 @@ function SlotButton({ slot, selected, needed, onSelect }) {
 export default function EventRegistrationModal({ event: initialEvent, onClose, onSaved, autoOpened = false }) {
   const [event, setEvent] = useState(initialEvent);
   const registration = event.myRegistration?.status === 'registered' ? event.myRegistration : null;
+  // A queued member has a complete request on file, it just holds no seat yet,
+  // so the form is prefilled from it exactly as it is for a registered one.
+  const queued = event.myRegistration?.status === 'waitlisted' ? event.myRegistration : null;
+  const onFile = registration || queued;
+  // Joining a queue rather than taking a seat changes every label on the way.
+  const joiningWaitlist = Boolean(queued || (event.canJoinWaitlist && !registration));
 
-  // Someone already registered lands on their summary; everyone else on the form.
-  const [mode, setMode] = useState(registration ? 'summary' : 'form');
+  // Someone with a request on file lands on their summary; everyone else on the form.
+  const [mode, setMode] = useState(onFile ? 'summary' : 'form');
   const [saving, setSaving] = useState(false);
-  const [attending, setAttending] = useState(Boolean(registration));
-  const [hasSpouse, setHasSpouse] = useState(registration?.hasSpouse ?? null);
-  const [spouseName, setSpouseName] = useState(registration?.spouseName || '');
+  const [attending, setAttending] = useState(Boolean(onFile));
+  const [hasSpouse, setHasSpouse] = useState(onFile?.hasSpouse ?? null);
+  const [spouseName, setSpouseName] = useState(onFile?.spouseName || '');
   const [wantsChildren, setWantsChildren] = useState(
-    registration ? Boolean(registration.childrenAttending?.length) : null
+    onFile ? Boolean(onFile.childrenAttending?.length) : null
   );
   const [childrenIds, setChildrenIds] = useState(
-    (registration?.childrenAttending || []).map((c) => String(c.childId))
+    (onFile?.childrenAttending || []).map((c) => String(c.childId))
   );
-  const [wantsTour, setWantsTour] = useState(registration ? Boolean(registration.tour) : null);
+  const [wantsTour, setWantsTour] = useState(onFile ? Boolean(onFile.tour) : null);
   const [selected, setSelected] = useState(
-    registration?.tour ? { tourId: registration.tour.tourId, slotId: registration.tour.slotId } : null
+    onFile?.tour ? { tourId: onFile.tour.tourId, slotId: onFile.tour.slotId } : null
   );
-  const [tourForBoth, setTourForBoth] = useState(registration?.tour?.forBoth ?? true);
+  const [tourForBoth, setTourForBoth] = useState(onFile?.tour?.forBoth ?? true);
   const [error, setError] = useState('');
 
   const dialogRef = useRef(null);
@@ -195,7 +201,7 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
         slotId: wantsTour && selected ? selected.slotId : null,
         tourForBoth: Boolean(hasSpouse && wantsTour && tourForBoth),
       };
-      const method = registration ? 'patch' : 'post';
+      const method = onFile ? 'patch' : 'post';
       const { data } = await api[method](`/events/${event._id}/register`, payload);
       setEvent(data.event);
       onSaved?.(data.event);
@@ -227,12 +233,15 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
   };
 
   const cancelRegistration = async () => {
-    if (!window.confirm('לבטל את ההשתתפות באירוע? המקום שלך (וגם מקום הסיור) ישוחררו.')) return;
+    const question = queued
+      ? 'לצאת מרשימת ההמתנה? המקום שלך בתור יימחק, ואם תחזרו תצטרפו בסוף התור.'
+      : 'לבטל את ההשתתפות באירוע? המקום שלך (וגם מקום הסיור) ישוחררו.';
+    if (!window.confirm(question)) return;
     setSaving(true);
     try {
       const { data } = await api.delete(`/events/${event._id}/register`);
       onSaved?.(data.event);
-      toast.success('ההשתתפות בוטלה');
+      toast.success(queued ? 'יצאתם מרשימת ההמתנה' : 'ההשתתפות בוטלה');
       onClose();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'שגיאה בביטול ההרשמה');
@@ -311,11 +320,19 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
 
           {mode === 'summary' && (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-olive-200 bg-olive-50 p-4">
-                <div className="flex items-center gap-2 font-bold text-olive-800">
-                  <Check className="h-4.5 w-4.5" />
-                  אתם רשומים לאירוע
+              <div className={`rounded-2xl border p-4 ${queued ? 'border-amber-200 bg-amber-50' : 'border-olive-200 bg-olive-50'}`}>
+                <div className={`flex items-center gap-2 font-bold ${queued ? 'text-amber-900' : 'text-olive-800'}`}>
+                  {queued ? <Hourglass className="h-4.5 w-4.5" /> : <Check className="h-4.5 w-4.5" />}
+                  {queued ? 'אתם ברשימת ההמתנה' : 'אתם רשומים לאירוע'}
                 </div>
+                {queued && (
+                  <p className="mt-1.5 text-sm text-amber-900 leading-relaxed">
+                    {queued.waitlistPosition
+                      ? <>המקום שלכם בתור: <strong>{queued.waitlistPosition}</strong>. </>
+                      : null}
+                    האירוע מלא כרגע. אם יתפנו מספיק מקומות לכל המשתתפים שרשמתם — תיכנסו אוטומטית ותקבלו מייל.
+                  </p>
+                )}
                 <dl className="mt-3 space-y-1.5 text-sm text-ink-600">
                   <SummaryRow label="בן/בת זוג" value={event.myRegistration.hasSpouse ? event.myRegistration.spouseName : 'לא'} />
                   {event.childrenEnabled && (
@@ -334,12 +351,12 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
                 </dl>
               </div>
 
-              <CalendarButtons event={event} tour={currentTour} />
+              {!queued && <CalendarButtons event={event} tour={currentTour} />}
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <button onClick={() => setMode('form')} className="btn-primary flex-1">
                   <Pencil className="h-4 w-4" />
-                  עריכת ההרשמה
+                  {queued ? 'עריכת הפרטים' : 'עריכת ההרשמה'}
                 </button>
                 <button onClick={cancelRegistration} disabled={saving} className="btn-outline !text-red-600 !border-red-200 hover:!bg-red-50">
                   <Trash2 className="h-4 w-4" />
@@ -372,7 +389,9 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
                     {attending && <Check className="h-4 w-4" />}
                   </span>
                   <span>
-                    <span className="block font-bold text-ink">אני מגיע/ה לאירוע</span>
+                    <span className="block font-bold text-ink">
+                      {joiningWaitlist && !onFile ? 'אני רוצה להצטרף לרשימת ההמתנה' : 'אני מגיע/ה לאירוע'}
+                    </span>
                     <span className="block text-xs text-ink-500 mt-0.5">
                       הפרטים שלך כבר שמורים בפרופיל — אין צורך למלא אותם שוב.
                     </span>
@@ -524,18 +543,41 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
               )}
 
               {event.isFull && !registration && (
-                <p className="rounded-xl bg-ink-50 border border-ink-200 p-3 text-sm text-ink-600">
-                  האירוע מלא. אפשר לפנות למטה החטיבה לבירור זמינות.
-                </p>
+                event.canJoinWaitlist ? (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3.5 text-sm text-amber-900 leading-relaxed">
+                    <div className="flex items-center gap-2 font-bold">
+                      <Hourglass className="h-4 w-4 shrink-0" />
+                      {queued ? 'אתם ברשימת ההמתנה' : 'האירוע מלא — אפשר להצטרף לרשימת המתנה'}
+                    </div>
+                    <p className="mt-1">
+                      {queued
+                        ? 'עדכון הפרטים כאן לא משנה את מקומכם בתור.'
+                        : 'מלאו את הפרטים כרגיל. אם יתפנו מקומות — תיכנסו לפי התור, עם כל המשתתפים שרשמתם יחד.'}
+                      {event.waitlistCount > 0 && !queued ? ` כרגע ${event.waitlistCount} ממתינים.` : ''}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="rounded-xl bg-ink-50 border border-ink-200 p-3 text-sm text-ink-600">
+                    האירוע מלא. אפשר לפנות למטה החטיבה לבירור זמינות.
+                  </p>
+                )
               )}
 
               <div className="flex flex-col gap-2 pt-1">
                 <button onClick={submit} disabled={!canSubmit || saving} className="btn-primary w-full">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  {registration ? 'עדכון ההרשמה' : 'אישור ההרשמה'}
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : joiningWaitlist ? (
+                    <Hourglass className="h-4 w-4" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  {onFile
+                    ? queued ? 'עדכון הפרטים' : 'עדכון ההרשמה'
+                    : joiningWaitlist ? 'הצטרפות לרשימת ההמתנה' : 'אישור ההרשמה'}
                 </button>
 
-                {registration ? (
+                {onFile ? (
                   <button onClick={() => setMode('summary')} className="btn-ghost w-full text-sm">
                     חזרה
                   </button>
@@ -546,7 +588,7 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
                 )}
               </div>
 
-              {event.seatsLeft !== null && event.seatsLeft <= 20 && !registration && (
+              {event.seatsLeft !== null && event.seatsLeft > 0 && event.seatsLeft <= 20 && !registration && (
                 <p className="text-center text-xs text-accent-700 font-semibold">
                   נותרו {event.seatsLeft} מקומות לאירוע
                 </p>
@@ -596,6 +638,7 @@ function CalendarButtons({ event, tour }) {
 function ConfirmationPanel({ event, onEdit, onClose }) {
   const reg = event.myRegistration;
   const tour = reg?.tour;
+  const queued = reg?.status === 'waitlisted';
 
   return (
     <div className="space-y-4 text-center">
@@ -603,14 +646,22 @@ function ConfirmationPanel({ event, onEdit, onClose }) {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', damping: 14 }}
-        className="mx-auto h-16 w-16 rounded-2xl bg-olive-100 text-olive-700 flex items-center justify-center"
+        className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center ${
+          queued ? 'bg-amber-100 text-amber-800' : 'bg-olive-100 text-olive-700'
+        }`}
       >
-        <PartyPopper className="h-8 w-8" />
+        {queued ? <Hourglass className="h-8 w-8" /> : <PartyPopper className="h-8 w-8" />}
       </motion.div>
 
       <div>
-        <h3 className="text-lg font-bold text-ink">ההרשמה אושרה!</h3>
-        <p className="text-sm text-ink-500 mt-1">שלחנו לך מייל אישור עם כל הפרטים.</p>
+        <h3 className="text-lg font-bold text-ink">
+          {queued ? 'נרשמתם לרשימת ההמתנה' : 'ההרשמה אושרה!'}
+        </h3>
+        <p className="text-sm text-ink-500 mt-1">
+          {queued
+            ? `האירוע מלא כרגע${reg?.waitlistPosition ? `, ואתם במקום ${reg.waitlistPosition} בתור` : ''}. אם יתפנו מקומות לכל המשתתפים שרשמתם — תיכנסו אוטומטית ונעדכן אתכם במייל.`
+            : 'שלחנו לך מייל אישור עם כל הפרטים.'}
+        </p>
       </div>
 
       <dl className="rounded-2xl border border-ink-100 bg-ink-50/50 p-4 text-right space-y-2 text-sm">
@@ -627,11 +678,11 @@ function ConfirmationPanel({ event, onEdit, onClose }) {
         )}
       </dl>
 
-      <CalendarButtons event={event} tour={tour} />
+      {!queued && <CalendarButtons event={event} tour={tour} />}
 
       <div className="flex gap-2">
         <button onClick={onEdit} className="btn-outline flex-1">
-          עריכת ההרשמה
+          {queued ? 'עריכת הפרטים' : 'עריכת ההרשמה'}
         </button>
         <button onClick={onClose} className="btn-primary flex-1">
           סיום
