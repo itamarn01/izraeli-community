@@ -8,6 +8,35 @@ import {
 import api from '../../api/client';
 import { formatEventDate, formatEventHours, googleCalendarUrl, icsUrl } from '../../utils/eventDate.js';
 
+/**
+ * Maps the children saved on a registration onto the ones the event is
+ * actually offering right now.
+ *
+ * Needed because a saved `childId` can point at a child that no longer exists:
+ * profile saves used to re-mint subdocument ids, so older registrations hold
+ * dead references. Matching falls back to name + date of birth, and anything
+ * still unmatched is dropped — submitting a dead id is what produced
+ * "אחד הילדים שנבחרו לא נמצא בפרופיל".
+ */
+function matchSavedChildren(saved = [], offered = []) {
+  const dayOf = (d) => (d ? String(new Date(d).toISOString()).slice(0, 10) : '');
+  const offeredIds = new Set(offered.map((c) => String(c._id)));
+  const matched = [];
+
+  for (const child of saved) {
+    const id = String(child.childId || '');
+    if (offeredIds.has(id)) {
+      matched.push(id);
+      continue;
+    }
+    const sameChild = offered.find(
+      (c) => c.name === child.name && dayOf(c.dateOfBirth) === dayOf(child.dateOfBirth)
+    );
+    if (sameChild) matched.push(String(sameChild._id));
+  }
+  return [...new Set(matched)];
+}
+
 // Yes/no pair used for the spouse and tour questions.
 function ChoicePair({ name, value, onChange, yesLabel = 'כן', noLabel = 'לא' }) {
   const opt = (val, label) => {
@@ -125,8 +154,8 @@ export default function EventRegistrationModal({ event: initialEvent, onClose, o
   const [wantsChildren, setWantsChildren] = useState(
     onFile ? Boolean(onFile.childrenAttending?.length) : null
   );
-  const [childrenIds, setChildrenIds] = useState(
-    (onFile?.childrenAttending || []).map((c) => String(c.childId))
+  const [childrenIds, setChildrenIds] = useState(() =>
+    matchSavedChildren(onFile?.childrenAttending, initialEvent.eligibleChildren)
   );
   const [wantsTour, setWantsTour] = useState(onFile ? Boolean(onFile.tour) : null);
   const [selected, setSelected] = useState(
