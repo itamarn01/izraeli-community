@@ -115,6 +115,9 @@ export default function ProfilePage() {
     studentLevel: pf.studentLevel || '',
     selfEmployedBusiness: pf.selfEmployedBusiness || '',
     children: pf.children?.map((c) => ({
+      // Sent back on save: the id is what event registrations point at, so
+      // dropping it here would make the server mint a new one and orphan them.
+      _id: c._id,
       name: c.name,
       dateOfBirth: c.dateOfBirth ? new Date(c.dateOfBirth).toISOString().slice(0, 10) : '',
     })) || [],
